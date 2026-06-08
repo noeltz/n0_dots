@@ -1,0 +1,20 @@
+#!/usr/bin/env zsh
+
+if [[ -f "$ZDOTDIR/settings.zsh" ]]; then
+  source $ZDOTDIR/settings.zsh
+fi
+
+# Load plugin manager framework
+if [[ -n ${ZSH_PLUGIN_FRAMEWORK} ]]; then
+  source $ZDOTDIR/plugins/"$ZSH_PLUGIN_FRAMEWORK".zsh || echo -e "==>  Failed to source ${ZSH_PLUGIN_FRAMEWORK}"
+fi
+
+if [[ -n ${ZSH_PROMPT} && ${SKIP_PROMPT_LOAD} != 1 ]]; then
+  source $ZDOTDIR/prompts/"$ZSH_PROMPT".zsh || echo -e "==>  Failed to source ${ZSH_PROMPT}"
+fi
+
+# Source other configs in conf.d
+for file in "${ZDOTDIR:-$HOME/.config/zsh}/conf.d/"*.zsh; do
+  [ -r "$file" ] && source "$file" || echo -e "==>  Failed to source $file"
+done
+

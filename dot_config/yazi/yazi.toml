@@ -1,0 +1,11 @@
+[mgr]
+show_hidden = true
+
+[opener]
+edit = [
+	{ run = '$EDITOR "$@"', block = true, for = "unix" },
+]
+
+[flavor]
+dark  = "noctalia"
+light = "noctalia"

@@ -1,0 +1,11 @@
+// niri.d/_index.kdl
+// This file aggregates all configuration modules.
+
+include "10-inputs.kdl"
+include "20-outputs.kdl"
+include "30-appearance.kdl"
+include "40-rules.kdl"
+include "50-startup.kdl"
+include "60-keys.kdl"
+include "70-misc.kdl"
+include "./animations/stock.kdl"

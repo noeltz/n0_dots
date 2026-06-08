@@ -1,0 +1,6 @@
+[meta]
+version = 1
+name = "Matugen"
+description = "Matugen theme for Vicinae"
+variant = "dark"
+inherits = "vicinae-dark"

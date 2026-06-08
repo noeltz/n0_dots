@@ -1,0 +1,2 @@
+spawn-sh-at-startup "reload-portal.sh"
+spawn-sh-at-startup "noctalia"

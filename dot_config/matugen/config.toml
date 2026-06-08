@@ -1,0 +1,148 @@
+[config]
+caching = false
+
+[config.custom_colors]
+red = { color = "#FF0000", blend = true }
+green = { color = "#00FF00", blend = true }
+blue = { color = "#0000FF", blend = true }
+yellow = { color = "#FFA500", blend = true } # Orange-ish color for better clarity since #FFFF00 results in greenish color
+cyan = { color ="#00FFFF", blend = true }
+magenta = { color = "#FF00FF", blend = true }
+
+[templates.waybar]
+input_path = '~/.config/matugen/templates/waybar.css'
+output_path = '~/.config/waybar/colors.css'
+
+[templates.wlogout]
+input_path = '~/.config/matugen/templates/wlogout.css'
+output_path = '~/.config/wlogout/colors.css'
+
+[templates.dunst]
+input_path = '~/.config/matugen/templates/dunstrc-colors'
+output_path = '~/.config/dunst/dunstrc.d/matugen-colors.conf'
+post_hook = 'dunstctl reload'
+
+[templates.swaync]
+input_path = '~/.config/matugen/templates/swaync.css'
+output_path = '~/.config/swaync/colors.css'
+post_hook = 'swaync-client -rs -sw'
+
+[templates.rofi]
+input_path = '~/.config/matugen/templates/rofi.rasi'
+output_path = '~/.config/rofi/colors.rasi'
+
+[templates.midnight-discord]
+input_path = '~/.config/matugen/templates/midnight-discord.css'
+output_path = '~/.config/vesktop/themes/midnight-matugen.css'
+
+[templates.system24-discord]
+input_path = '~/.config/matugen/templates/system24-discord.css'
+output_path = '~/.config/vesktop/themes/system24-matugen.css'
+
+[templates.kitty]
+input_path = '~/.config/matugen/templates/kitty.conf'
+output_path = '~/.config/kitty/matugen-theme.conf'
+post_hook = "dank16.py '{{colors.primary.default.hex}}' --kitty --{{mode}} >> $XDG_CONFIG_HOME/kitty/matugen-theme.conf && pkill -USR1 kitty"
+
+[templates.btop]
+input_path = '~/.config/matugen/templates/btop.theme'
+output_path = '~/.config/btop/themes/matugen.theme'
+post_hook = "pkill -USR2 btop"
+
+[templates.rmpc]
+input_path = '~/.config/matugen/templates/rmpc.ron'
+output_path = '~/.config/rmpc/themes/matugen.ron'
+
+[templates.niri]
+input_path = '~/.config/matugen/templates/niri-matugen.kdl'
+output_path = '~/.config/niri/matugen-colors.kdl'
+
+[templates.gtk3]
+input_path = '~/.config/matugen/templates/gtk-colors.css'
+output_path = '~/.config/gtk-3.0/colors.css'
+post_hook = 'gsettings set org.gnome.desktop.interface gtk-theme ""; gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3'
+
+[templates.gtk4]
+input_path = '~/.config/matugen/templates/gtk-colors.css'
+output_path = '~/.config/gtk-4.0/colors.css'
+post_hook = 'gsettings set org.gnome.desktop.interface gtk-theme ""; gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3'
+
+[templates.cava]
+input_path = '~/.config/matugen/templates/cava-colors.ini'
+output_path = '~/.config/cava/themes/matugen'
+post_hook = "pkill -USR1 cava"
+
+[templates.yazi]
+input_path = '~/.config/matugen/templates/yazi-theme.toml'
+output_path = '~/.config/yazi/theme.toml'
+
+[templates.spotify]
+input_path = '~/.config/matugen/templates/spotify-color.ini'
+output_path = '~/.config/spicetify/Themes/Comfy/color.ini'
+post_hook = 'pgrep -x spotify && spicetify refresh &'
+
+[templates.spotify-text]
+input_path = '~/.config/matugen/templates/spotify-text-color.ini'
+output_path = '~/.config/spicetify/Themes/text/color.ini'
+
+[templates.hyprlock]
+input_path = '~/.config/matugen/templates/hyprlock-colors.conf'
+output_path = '~/.config/hypr/colors.conf'
+
+[templates.vscode]
+input_path = '~/.config/matugen/templates/vscode-color-theme.json'
+output_path = '~/.vscode-oss/extensions/satanalphabet.matugen-vscode-1.1.0/themes/light.json'
+
+[templates.vscode-dark]
+input_path = '~/.config/matugen/templates/vscode-color-theme-dark.json'
+output_path = '~/.vscode-oss/extensions/satanalphabet.matugen-vscode-1.1.0/themes/dark.json'
+
+[templates.helium-policy]
+input_path = '~/.config/matugen/templates/chromium-colors.json'
+output_path = '~/.local/share/color-schemes/chromium.json'
+post_hook = 'helium-browser --refresh-platform-policy --no-startup-window'
+
+[templates.zen-userChrome]
+input_path = '~/.config/matugen/templates/userChrome.css'
+output_path = '~/.cache/matugen/zen-browser/userChrome.css'
+post_hook = 'sync-zen-settings.sh'
+
+[templates.zen-userContent]
+input_path = '~/.config/matugen/templates/userContent.css'
+output_path = '~/.cache/matugen/zen-browser/userContent.css'
+post_hook = 'sync-zen-settings.sh'
+
+[templates.pywalfox]
+input_path = '~/.config/matugen/templates/pywalfox-colors.json'
+output_path = '~/.cache/wal/colors.json'
+post_hook = 'matugen-pywalfox.sh {{mode}} &'
+
+[templates.color-scheme]
+input_path = '~/.config/matugen/templates/Matugen.colors'
+output_path = '~/.local/share/color-schemes/Matugen.colors'
+post_hook = 'reload-qt.sh &'
+
+[templates.vicinae]
+input_path = '~/.config/matugen/templates/vicinae.toml'
+output_path = "~/.local/share/vicinae/themes/matugen.toml"
+post_hook = 'vicinae theme set matugen'
+
+[templates.walker]
+input_path = '~/.config/matugen/templates/walker.scss'
+output_path = '~/.config/walker/themes/n0_dots/theme.scss'
+
+[templates.hamr_colors]
+input_path = '~/.config/matugen/templates/hamr-colors.json'
+output_path = '~/.config/hamr/colors.json'
+
+[templates.zed]
+input_path = '~/.config/matugen/templates/zed-colors.json'
+output_path = '~/.config/zed/themes/matugen.json'
+
+[templates.steam]
+input_path = '~/.config/matugen/templates/steam.css'
+output_path = '~/.steam/steam/steamui/skins/Material-Theme/css/main/colors/matugen.css'
+
+[templates.lazygit]
+input_path = '~/.config/matugen/templates/lazygit-theme.yml'
+output_path = '~/.config/lazygit/matugen-theme.yml'

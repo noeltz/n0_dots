@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# --- Configuration ---
+WIDEVINE_SRC="/usr/lib/chromium/WidevineCdm"
+WIDEVINE_DEST="/opt/helium-browser-bin/WidevineCdm"
+WIDEVINE_DEST_DIR="$(dirname "$WIDEVINE_DEST")"
+
+POLICY_DIR="/etc/chromium/policies/managed"
+POLICY_LINK="$POLICY_DIR/theme.json"
+
+LOCAL_CONFIG_DIR="$HOME/.local/share/color-schemes"
+LOCAL_CONFIG_FILE="$LOCAL_CONFIG_DIR/chromium.json"
+
+# --- 1. Widevine Symlink ---
+echo "Checking Widevine DRM support..."
+if [[ -d "$WIDEVINE_SRC" && -d "$WIDEVINE_DEST_DIR" ]]; then
+  # Check if symlink exists and points to the correct target
+  # Note: readlink works on root-owned symlinks for normal users if dirs are readable
+  current_target=""
+  if [[ -L "$WIDEVINE_DEST" ]]; then
+    current_target=$(readlink "$WIDEVINE_DEST")
+  fi
+
+  if [[ "$current_target" != "$WIDEVINE_SRC" ]]; then
+    echo "  Creating/updating WidevineCdm symlink..."
+    sudo ln -sfn "$WIDEVINE_SRC" "$WIDEVINE_DEST"
+  else
+    echo "  WidevineCdm symlink is already correct."
+  fi
+else
+  echo "  WidevineCdm or Helium browser directory missing; skipping DRM link."
+fi
+
+# --- 2. Chromium Policy Directory ---
+if [[ ! -d "$POLICY_DIR" ]]; then
+  echo "  Creating Chromium policies directory..."
+  sudo mkdir -p "$POLICY_DIR"
+else
+  echo "  Chromium policies directory already exists."
+fi
+
+# --- 3. Local Color Scheme Config ---
+# Ensure parent directory exists (User permissions, no sudo needed)
+if [[ ! -d "$LOCAL_CONFIG_DIR" ]]; then
+  echo "  Creating local config directory..."
+  mkdir -p "$LOCAL_CONFIG_DIR"
+fi
+
+# Only create the file if it does not exist. 
+# Content changes are ignored per requirements.
+if [[ ! -f "$LOCAL_CONFIG_FILE" ]]; then
+  echo "  Creating local color scheme config..."
+  echo '{
+  "BrowserThemeColor": "#000000"
+}' > "$LOCAL_CONFIG_FILE"
+else
+  echo "  Local color scheme config already exists."
+fi
+
+# --- 4. Policy Symlink ---
+# Check if symlink exists and points to the correct target
+current_policy_target=""
+if [[ -L "$POLICY_LINK" ]]; then
+  current_policy_target=$(readlink "$POLICY_LINK")
+fi
+
+if [[ "$current_policy_target" != "$LOCAL_CONFIG_FILE" ]]; then
+  echo "  Creating/updating policy symlink..."
+  sudo ln -sfn "$LOCAL_CONFIG_FILE" "$POLICY_LINK"
+else
+  echo "  Policy symlink is already correct."
+fi
+
+echo "Done."

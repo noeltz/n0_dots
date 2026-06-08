@@ -1,0 +1,138 @@
+/// --- Window rules --- ///
+
+window-rule {
+  geometry-corner-radius 4
+  clip-to-geometry true
+  draw-border-with-background false
+  tiled-state true
+}
+
+window-rule {
+  match app-id=r"^org\.wezfurlong\.wezterm$"
+  default-column-width 
+}
+
+window-rule {
+  match app-id=r"nm-applet"
+  match app-id=r"pavucontrol"
+  match app-id=r"blueman-manager"
+  match app-id=r"waypaper"
+
+  open-floating true
+  default-window-height 
+
+  default-column-width 
+}
+
+window-rule {
+  match app-id=r"zen$" title="^[Pp]icture-in-Picture$"
+  match app-id=r"firefox$" title="^[Pp]icture-in-Picture$"
+  match app-id=r"Chromium-browser$" title="^| Spotify$"
+
+  open-floating true
+  default-floating-position x=24 y=24 relative-to="bottom-right"
+}
+
+window-rule {
+  match title="^Discord Popout$"
+
+  open-floating true
+  default-floating-position x=24 y=24 relative-to="bottom-right"
+  default-window-height { fixed 500; }
+  default-column-width { fixed 300; }
+}
+
+window-rule {
+  match app-id=r"discord$"
+  match app-id=r"zen$"
+  match app-id=r"firefox$"
+  match app-id=r"vencord$"
+  match app-id=r"vesktop$"
+
+  open-maximized true
+}
+
+window-rule {
+  match app-id="^discord$"
+  match app-id="^vesktop$"
+
+  open-on-workspace "chat"
+}
+
+window-rule {
+  match app-id="^zen$"
+  match app-id="^firefox$"
+
+  open-on-workspace "browser"
+}
+
+
+window-rule {
+  match app-id=r"^sysupdate$"
+
+  open-floating true
+  default-window-height { proportion 0.7; }
+  default-column-width { proportion 0.5; }
+}
+
+window-rule {
+  match app-id=r"^n0tui_.*$"
+
+  open-floating true
+  default-window-height { proportion 0.7; }
+  default-column-width { proportion 0.5; }
+}
+
+window-rule {
+  match app-id="^dropdown$"
+  match title="^gsr notify$"
+
+  open-floating true
+  default-floating-position x=0 y=8 relative-to="top"
+  default-window-height { proportion 0.5; }
+  default-column-width { proportion 0.5; }
+}
+
+window-rule {
+  match app-id=r"^org\.keepassxc\.KeePassXC$"
+  match app-id=r"^org\.gnome\.World\.Secrets$"
+
+  block-out-from "screen-capture"
+
+    // Use this instead if you want them visible on third-party screenshot tools.
+    // block-out-from "screencast"
+}
+
+window-rule {
+  match is-floating=true
+
+  shadow {
+    on
+    softness 12
+    spread 0
+    offset x=0 y=5
+    }
+  geometry-corner-radius 8
+  tiled-state false
+}
+
+/// --- Layer rules --- ///
+
+layer-rule {
+  match namespace="^wallpaper$"
+  match namespace="^swww-daemonoverview$"
+  match namespace="^awww-daemonoverview$"
+  match namespace="^dms:blurwallpaper$"
+  match namespace="^noctalia-overview*"
+  match namespace="^noctalia-backdrop*"
+  match namespace="^noctalia-wallpaper*"
+
+  place-within-backdrop true
+}
+
+layer-rule {
+  match namespace="^rofi$"
+  shadow {
+    on
+    }
+}

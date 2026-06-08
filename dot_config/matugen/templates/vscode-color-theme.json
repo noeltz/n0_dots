@@ -1,0 +1,443 @@
+{
+	"semanticHighlighting": true,
+	"semanticTokenColors": {
+		"variable": {
+			"foreground": "{{colors.surface.light.hex}}"
+		},
+		"parameter": {
+			"foreground": "{{colors.surface_variant.light.hex}}"
+		},
+		"property": {
+			"foreground": "{{colors.primary.light.hex | auto_lightness: 5.0 | saturate: 15.0, hsl}}"
+		},
+		"function": {
+			"foreground": "{{colors.green.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}"
+		},
+		"string": {
+			"foreground": "{{colors.yellow.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}"
+		},
+		"number": {
+			"foreground": "{{colors.primary.light.hex | auto_lightness: 15.0 | saturate: 25.0, hsl}}"
+		},
+		"keyword": {
+			"foreground": "{{colors.tertiary.light.hex | auto_lightness: 5.0 | saturate: 15.0, hsl}}"
+		},
+		"comment": {
+			"foreground": "{{colors.outline.light.hex}}"
+		}
+	},
+	"tokenColors": [
+		{
+			"scope": ["comment"],
+			"settings": {
+				"foreground": "{{colors.outline.light.hex}}"
+			}
+		},
+		{
+			"scope": ["keyword"],
+			"settings": {
+				"foreground": "{{colors.tertiary.light.hex | auto_lightness: 5.0 | saturate: 15.0, hsl}}"
+			}
+		},
+		{
+			"scope": ["string"],
+			"settings": {
+				"foreground": "{{colors.yellow.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}"
+			}
+		},
+		{
+			"scope": ["constant", "constant.language", "constant.numeric"],
+			"settings": {
+				"foreground": "{{colors.tertiary.light.hex | auto_lightness: 15.0 | saturate: 25.0, hsl}}"
+			}
+		},
+		{
+			"scope": ["variable"],
+			"settings": {
+				"foreground": "{{colors.surface.light.hex}}"
+			}
+		},
+		{
+			"scope": ["entity.name.function"],
+			"settings": {
+				"foreground": "{{colors.green.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}"
+			}
+		},
+		{
+			"scope": ["entity.name.class", "support.type"],
+			"settings": {
+				"foreground": "{{colors.primary.light.hex | auto_lightness: 15.0 | saturate: 25.0, hsl}}"
+			}
+		},
+		{
+			"scope": ["invalid"],
+			"settings": {
+				"foreground": "{{colors.error.light.hex}}"
+			}
+		},
+		{
+			"scope": ["markup.heading"],
+			"settings": {
+				"foreground": "{{colors.primary.light.hex | auto_lightness: 5.0 | saturate: 15.0, hsl}}",
+				"fontStyle": "bold"
+			}
+		},
+		{
+			"scope": ["entity.name.tag.yaml", "punctuation.definition.block.sequence.item.yaml"],
+			"settings": {
+				"foreground": "{{colors.on_surface.light.hex}}"
+			}
+		},
+		{
+			"scope": ["source.yaml string.unquoted", "source.yaml string.quoted"],
+			"settings": {
+				"foreground": "{{colors.yellow.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}"
+			}
+		},
+		{
+			"scope": ["constant.language.boolean.yaml", "constant.language.null.yaml"],
+			"settings": {
+				"foreground": "{{colors.primary.light.hex | auto_lightness: 15.0 | saturate: 25.0, hsl}}"
+			}
+		},
+		{
+			"scope": ["punctuation.separator.key-value.mapping.yaml"],
+			"settings": {
+				"foreground": "{{colors.on_surface.light.hex}}"
+			}
+		},
+		{
+			"scope": ["entity.name.tag.toml", "support.type.property-name.toml"],
+			"settings": {
+				"foreground": "{{colors.on_surface.light.hex}}"
+			}
+		},
+		{
+			"scope": ["string.quoted.single.basic.line.toml", "string.quoted.double.basic.line.toml"],
+			"settings": {
+				"foreground": "{{colors.yellow.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}"
+			}
+		},
+		{
+			"scope": ["constant.language.boolean.toml", "constant.numeric.toml"],
+			"settings": {
+				"foreground": "{{colors.primary.light.hex | auto_lightness: 15.0 | saturate: 25.0, hsl}}"
+			}
+		},
+		{
+			"scope": ["meta.object-literal.key", "support.type.property-name.json"],
+			"settings": {
+				"foreground": "{{colors.on_surface.light.hex}}"
+			}
+		}
+	],
+	"colors": {
+		"foreground": "{{colors.on_background.light.hex}}",
+		"focusBorder": "{{colors.primary.light.hex}}",
+		"selection.background": "{{colors.primary.light.hex}}66",
+		"scrollbar.shadow": "{{colors.background.light.hex}}00",
+		"activityBar.background": "{{colors.surface_container_high.light.hex}}",
+		"activityBar.foreground": "{{colors.on_surface.light.hex}}",
+		"activityBar.inactiveForeground": "{{colors.on_surface_variant.light.hex}}",
+		"activityBarBadge.background": "{{colors.primary.light.hex}}",
+		"activityBarBadge.foreground": "{{colors.on_primary.light.hex}}",
+		"sideBar.background": "{{colors.surface_container.light.hex}}",
+		"sideBar.foreground": "{{colors.on_surface.light.hex}}",
+		"sideBarSectionHeader.background": "{{colors.surface_container.light.hex}}",
+		"sideBarSectionHeader.foreground": "{{colors.on_surface_variant.light.hex}}",
+		"sideBarTitle.foreground": "{{colors.primary.light.hex}}",
+		"list.inactiveSelectionBackground": "{{colors.surface_variant.light.hex}}",
+		"list.inactiveSelectionForeground": "{{colors.on_surface_variant.light.hex}}",
+		"list.hoverBackground": "{{colors.surface_variant.light.hex}}40",
+		"list.hoverForeground": "{{colors.on_surface_variant.light.hex}}",
+		"list.activeSelectionBackground": "{{colors.primary.light.hex}}40",
+		"list.activeSelectionForeground": "{{colors.on_surface.light.hex}}",
+		"tree.indentGuidesStroke": "{{colors.outline.light.hex}}",
+		"list.dropBackground": "{{colors.primary_container.light.hex}}40",
+		"list.highlightForeground": "{{colors.primary.light.hex}}",
+		"list.focusBackground": "{{colors.primary.light.hex}}30",
+		"list.focusForeground": "{{colors.on_surface.light.hex}}",
+		"listFilterWidget.background": "{{colors.tertiary_container.light.hex}}",
+		"listFilterWidget.outline": "{{colors.outline.light.hex}}00",
+		"listFilterWidget.noMatchesOutline": "{{colors.error.light.hex}}",
+		"statusBarItem.hoverBackground": "{{colors.primary.light.hex}}1f",
+		"statusBar.background": "{{colors.surface_container.light.hex}}",
+		"statusBar.foreground": "{{colors.on_surface_variant.light.hex}}",
+		"statusBar.debuggingBackground": "{{colors.tertiary.light.hex}}",
+		"statusBar.debuggingForeground": "{{colors.on_tertiary.light.hex}}",
+		"statusBar.noFolderBackground": "{{colors.surface.light.hex}}",
+		"statusBarItem.remoteBackground": "{{colors.primary.light.hex}}",
+		"statusBarItem.remoteForeground": "{{colors.on_primary.light.hex}}",
+		"titleBar.activeBackground": "{{colors.surface_container_high.light.hex}}",
+		"titleBar.activeForeground": "{{colors.on_surface.light.hex}}",
+		"titleBar.inactiveBackground": "{{colors.surface_container_highest.light.hex}}",
+		"titleBar.inactiveForeground": "{{colors.on_surface_variant.light.hex}}",
+		"titleBar.border": "{{colors.outline.light.hex}}00",
+		"menubar.selectionForeground": "{{colors.on_surface.light.hex}}",
+		"menubar.selectionBackground": "{{colors.surface_variant.light.hex}}1a",
+		"menu.foreground": "{{colors.on_surface.light.hex}}",
+		"menu.background": "{{colors.surface.light.hex}}",
+		"menu.selectionForeground": "{{colors.on_primary_container.light.hex}}",
+		"menu.selectionBackground": "{{colors.primary_container.light.hex}}",
+		"menu.selectionBorder": "{{colors.outline.light.hex}}00",
+		"menu.separatorBackground": "{{colors.outline.light.hex}}",
+		"menu.border": "{{colors.outline.light.hex}}85",
+		"button.background": "{{colors.primary.light.hex}}",
+		"button.foreground": "{{colors.on_primary.light.hex}}",
+		"button.hoverBackground": "{{colors.primary_container.light.hex}}",
+		"button.secondaryForeground": "{{colors.on_secondary.light.hex}}",
+		"button.secondaryBackground": "{{colors.secondary.light.hex}}",
+		"button.secondaryHoverBackground": "{{colors.secondary_container.light.hex}}",
+		"checkbox.background": "{{colors.primary_container.light.hex}}",
+		"checkbox.foreground": "{{colors.on_primary_container.light.hex}}",
+		"dropdown.background": "{{colors.surface.light.hex}}",
+		"dropdown.foreground": "{{colors.on_surface.light.hex}}",
+		"input.background": "{{colors.surface_variant.light.hex}}",
+		"input.foreground": "{{colors.on_surface_variant.light.hex}}",
+		"input.placeholderForeground": "{{colors.on_surface_variant.light.hex}}9e",
+		"inputOption.activeBackground": "{{colors.primary.light.hex}}30",
+		"inputOption.activeBorder": "{{colors.primary.light.hex}}30",
+		"inputOption.activeForeground": "{{colors.primary.light.hex}}",
+		"inputValidation.errorBackground": "{{colors.error_container.light.hex}}",
+		"inputValidation.errorForeground": "{{colors.on_error_container.light.hex}}",
+		"inputValidation.errorBorder": "{{colors.error.light.hex}}",
+		"inputValidation.infoBackground": "{{colors.tertiary_container.light.hex}}",
+		"inputValidation.infoForeground": "{{colors.on_tertiary_container.light.hex}}",
+		"inputValidation.infoBorder": "{{colors.tertiary.light.hex}}",
+		"inputValidation.warningBackground": "{{colors.secondary_container.light.hex}}",
+		"inputValidation.warningForeground": "{{colors.on_secondary_container.light.hex}}",
+		"inputValidation.warningBorder": "{{colors.secondary.light.hex}}",
+		"scrollbarSlider.activeBackground": "{{colors.on_surface.light.hex}}80",
+		"scrollbarSlider.background": "{{colors.on_surface.light.hex}}30",
+		"scrollbarSlider.hoverBackground": "{{colors.on_surface.light.hex}}50",
+		"badge.foreground": "{{colors.on_primary.light.hex}}",
+		"badge.background": "{{colors.primary.light.hex}}",
+		"progressBar.background": "{{colors.primary.light.hex}}",
+		"editor.background": "{{colors.background.light.hex}}",
+		"editor.foreground": "{{colors.on_background.light.hex}}",
+		"editorLineNumber.foreground": "{{colors.outline.light.hex}}",
+		"editorLineNumber.activeForeground": "{{colors.primary.light.hex}}",
+		"editorCursor.background": "{{colors.background.light.hex}}",
+		"editorCursor.foreground": "{{colors.primary.light.hex}}",
+		"editor.selectionBackground": "{{colors.primary.light.hex}}40",
+		"editor.selectionHighlightBackground": "{{colors.surface_variant.light.hex}}80",
+		"editor.inactiveSelectionBackground": "{{colors.surface_variant.light.hex}}",
+		"editor.wordHighlightBackground": "{{colors.surface_variant.light.hex}}",
+		"editor.wordHighlightStrongBackground": "{{colors.primary_container.light.hex}}80",
+		"editor.findMatchBackground": "{{colors.tertiary.light.hex}}80",
+		"editor.findMatchHighlightBackground": "{{colors.tertiary.light.hex}}60",
+		"editor.findRangeHighlightBackground": "{{colors.surface_variant.light.hex}}",
+		"editor.hoverHighlightBackground": "{{colors.surface_variant.light.hex}}50",
+		"editor.lineHighlightBackground": "{{colors.surface_variant.light.hex}}50",
+		"editor.lineHighlightBorder": "{{colors.outline.light.hex}}00",
+		"editorLink.activeForeground": "{{colors.primary.light.hex}}",
+		"editorIndentGuide.background": "{{colors.outline.light.hex}}20",
+		"editorIndentGuide.activeBackground": "{{colors.outline.light.hex}}",
+		"editorRuler.foreground": "{{colors.outline.light.hex}}",
+		"editorBracketMatch.background": "{{colors.primary.light.hex}}4d",
+		"editorBracketMatch.border": "{{colors.primary.light.hex}}",
+		"editorBracketHighlight.foreground1": "{{colors.primary.light.hex}}",
+		"editorBracketHighlight.foreground2": "{{colors.secondary.light.hex}}",
+		"editorBracketHighlight.foreground3": "{{colors.tertiary.light.hex}}",
+		"editorBracketHighlight.foreground4": "{{colors.primary_container.light.hex}}",
+		"editorBracketHighlight.foreground5": "{{colors.secondary_container.light.hex}}",
+		"editorBracketHighlight.foreground6": "{{colors.tertiary_container.light.hex}}",
+		"editorBracketHighlight.unexpectedBracket.foreground": "{{colors.error.light.hex}}",
+		"editorOverviewRuler.border": "{{colors.outline.light.hex}}00",
+		"editorOverviewRuler.findMatchForeground": "{{colors.tertiary.light.hex}}",
+		"editorOverviewRuler.rangeHighlightForeground": "{{colors.primary.light.hex}}",
+		"editorOverviewRuler.selectionHighlightForeground": "{{colors.primary.light.hex}}",
+		"editorOverviewRuler.wordHighlightForeground": "{{colors.tertiary.light.hex}}",
+		"editorOverviewRuler.wordHighlightStrongForeground": "{{colors.tertiary.light.hex}}",
+		"editorOverviewRuler.modifiedForeground": "{{colors.primary.light.hex}}80",
+		"editorOverviewRuler.addedForeground": "{{colors.secondary.light.hex}}80",
+		"editorOverviewRuler.deletedForeground": "{{colors.error.light.hex}}80",
+		"editorOverviewRuler.errorForeground": "{{colors.error.light.hex}}",
+		"editorOverviewRuler.warningForeground": "{{colors.secondary.light.hex}}",
+		"editorOverviewRuler.infoForeground": "{{colors.tertiary.light.hex}}",
+		"editorGutter.background": "{{colors.background.light.hex}}",
+		"editorGutter.modifiedBackground": "{{colors.primary.light.hex}}80",
+		"editorGutter.addedBackground": "{{colors.secondary.light.hex}}80",
+		"editorGutter.deletedBackground": "{{colors.error.light.hex}}80",
+		"editorCodeLens.foreground": "{{colors.outline.light.hex}}",
+		"editorGroup.border": "{{colors.outline.light.hex}}",
+		"editorGroup.dropBackground": "{{colors.primary_container.light.hex}}40",
+		"editorGroupHeader.noTabsBackground": "{{colors.background.light.hex}}",
+		"editorGroupHeader.tabsBackground": "{{colors.surface.light.hex}}",
+		"editorGroupHeader.tabsBorder": "{{colors.outline.light.hex}}00",
+		"editorWidget.foreground": "{{colors.on_surface.light.hex}}",
+		"editorWidget.background": "{{colors.surface.light.hex}}",
+		"editorWidget.border": "{{colors.outline.light.hex}}",
+		"editorWidget.resizeBorder": "{{colors.primary.light.hex}}",
+		"editorSuggestWidget.background": "{{colors.surface.light.hex}}",
+		"editorSuggestWidget.border": "{{colors.outline.light.hex}}",
+		"editorSuggestWidget.foreground": "{{colors.on_surface.light.hex}}",
+		"editorSuggestWidget.highlightForeground": "{{colors.primary.light.hex}}",
+		"editorSuggestWidget.selectedBackground": "{{colors.surface_variant.light.hex}}",
+		"editorHoverWidget.foreground": "{{colors.on_surface.light.hex}}",
+		"editorHoverWidget.background": "{{colors.surface.light.hex}}",
+		"editorHoverWidget.border": "{{colors.outline.light.hex}}",
+		"editorMarkerNavigation.background": "{{colors.surface.light.hex}}",
+		"editorMarkerNavigationError.background": "{{colors.error.light.hex}}40",
+		"editorMarkerNavigationWarning.background": "{{colors.secondary.light.hex}}40",
+		"editorMarkerNavigationInfo.background": "{{colors.tertiary.light.hex}}40",
+		"peekView.border": "{{colors.primary.light.hex}}",
+		"peekViewEditor.background": "{{colors.surface.light.hex}}",
+		"peekViewEditor.matchHighlightBackground": "{{colors.tertiary.light.hex}}40",
+		"peekViewResult.background": "{{colors.surface_variant.light.hex}}",
+		"peekViewResult.fileForeground": "{{colors.on_surface_variant.light.hex}}",
+		"peekViewResult.lineForeground": "{{colors.on_surface_variant.light.hex}}",
+		"peekViewResult.matchHighlightBackground": "{{colors.tertiary.light.hex}}40",
+		"peekViewResult.selectionBackground": "{{colors.primary.light.hex}}40",
+		"peekViewResult.selectionForeground": "{{colors.on_primary_container.light.hex}}",
+		"peekViewTitle.background": "{{colors.surface_variant.light.hex}}",
+		"peekViewTitleDescription.foreground": "{{colors.on_surface_variant.light.hex}}",
+		"peekViewTitleLabel.foreground": "{{colors.primary.light.hex}}",
+		"merge.currentHeaderBackground": "{{colors.primary.light.hex}}30",
+		"merge.currentContentBackground": "{{colors.primary.light.hex}}20",
+		"merge.incomingHeaderBackground": "{{colors.tertiary.light.hex}}30",
+		"merge.incomingContentBackground": "{{colors.tertiary.light.hex}}20",
+		"merge.commonHeaderBackground": "{{colors.outline.light.hex}}30",
+		"merge.commonContentBackground": "{{colors.outline.light.hex}}20",
+		"merge.border": "{{colors.outline.light.hex}}00",
+		"panel.background": "{{colors.surface.light.hex}}",
+		"panel.border": "{{colors.outline.light.hex}}",
+		"panel.dropBorder": "{{colors.primary.light.hex}}",
+		"panelTitle.activeBorder": "{{colors.primary.light.hex}}",
+		"panelTitle.activeForeground": "{{colors.primary.light.hex}}",
+		"panelTitle.inactiveForeground": "{{colors.on_surface_variant.light.hex}}",
+		"tab.activeBackground": "{{colors.surface.light.hex}}",
+		"tab.activeForeground": "{{colors.primary.light.hex}}",
+		"tab.border": "{{colors.outline.light.hex}}00",
+		"tab.activeBorder": "{{colors.primary.light.hex}}",
+		"tab.inactiveBackground": "{{colors.surface_container.light.hex}}",
+		"tab.inactiveForeground": "{{colors.outline.light.hex}}",
+		"tab.unfocusedActiveForeground": "{{colors.primary.light.hex}}99",
+		"tab.unfocusedInactiveForeground": "{{colors.on_surface_variant.light.hex}}99",
+		"tab.unfocusedActiveBorder": "{{colors.primary.light.hex}}80",
+		"tab.unfocusedActiveBackground": "{{colors.surface.light.hex}}99",
+		"tab.unfocusedInactiveBackground": "{{colors.surface_variant.light.hex}}99",
+		"tab.activeModifiedBorder": "{{colors.tertiary.light.hex}}",
+		"tab.inactiveModifiedBorder": "{{colors.tertiary.light.hex}}80",
+		"tab.unfocusedActiveModifiedBorder": "{{colors.tertiary.light.hex}}40",
+		"tab.unfocusedInactiveModifiedBorder": "{{colors.tertiary.light.hex}}20",
+		"terminal.background": "{{colors.background.light.hex}}",
+		"terminal.foreground": "{{colors.on_background.light.hex}}",
+		"terminal.ansiBlack": "{{colors.surface.dark.hex}}",
+		"terminal.ansiRed": "{{colors.red.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiGreen": "{{colors.green.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiYellow": "{{colors.yellow.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiBlue": "{{colors.blue.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiMagenta": "{{colors.magenta.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiCyan": "{{colors.cyan.light.hex | auto_lightness: 5.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiWhite": "{{colors.surface_variant.light.hex}}",
+		"terminal.ansiBrightBlack": "{{colors.outline.light.hex}}",
+		"terminal.ansiBrightRed": "{{colors.red.light.hex | auto_lightness: 20.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiBrightGreen": "{{colors.green.light.hex | auto_lightness: 20.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiBrightYellow": "{{colors.yellow.light.hex | auto_lightness: 20.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiBrightBlue": "{{colors.blue.light.hex | auto_lightness: 20.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiBrightMagenta": "{{colors.magenta.light.hex | auto_lightness: 20.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiBrightCyan": "{{colors.cyan.light.hex | auto_lightness: 20.0 | saturate: 25.0, hsl}}",
+		"terminal.ansiBrightWhite": "{{colors.surface.light.hex}}",
+		"terminalCursor.background": "{{colors.background.light.hex}}",
+		"terminalCursor.foreground": "{{colors.primary.light.hex}}",
+		"notificationCenter.border": "{{colors.outline.light.hex}}",
+		"notificationCenterHeader.background": "{{colors.surface_variant.light.hex}}",
+		"notificationCenterHeader.foreground": "{{colors.on_surface_variant.light.hex}}",
+		"notificationToast.border": "{{colors.outline.light.hex}}",
+		"notifications.foreground": "{{colors.on_surface.light.hex}}",
+		"notifications.background": "{{colors.surface.light.hex}}",
+		"notifications.border": "{{colors.outline.light.hex}}",
+		"notificationsErrorIcon.foreground": "{{colors.error.light.hex}}",
+		"notificationsWarningIcon.foreground": "{{colors.secondary.light.hex}}",
+		"notificationsInfoIcon.foreground": "{{colors.tertiary.light.hex}}",
+		"extensionButton.prominentForeground": "{{colors.on_primary.light.hex}}",
+		"extensionButton.prominentBackground": "{{colors.primary.light.hex}}",
+		"extensionButton.prominentHoverBackground": "{{colors.primary_container.light.hex}}",
+		"pickerGroup.border": "{{colors.outline.light.hex}}",
+		"pickerGroup.foreground": "{{colors.primary.light.hex}}",
+		"debugToolBar.background": "{{colors.surface.light.hex}}",
+		"debugToolBar.border": "{{colors.outline.light.hex}}",
+		"welcomePage.buttonBackground": "{{colors.surface_variant.light.hex}}",
+		"welcomePage.buttonHoverBackground": "{{colors.primary.light.hex}}20",
+		"walkThrough.embeddedEditorBackground": "{{colors.surface.light.hex}}",
+		"gitDecoration.modifiedResourceForeground": "{{colors.primary.light.hex}}c0",
+		"gitDecoration.deletedResourceForeground": "{{colors.error.light.hex}}c0",
+		"gitDecoration.untrackedResourceForeground": "{{colors.secondary.light.hex}}c0",
+		"gitDecoration.ignoredResourceForeground": "{{colors.outline.light.hex}}80",
+		"gitDecoration.conflictingResourceForeground": "{{colors.tertiary.light.hex}}c0",
+		"gitDecoration.submoduleResourceForeground": "{{colors.on_surface_variant.light.hex}}c0",
+		"settings.headerForeground": "{{colors.on_background.light.hex}}",
+		"settings.modifiedItemIndicator": "{{colors.primary.light.hex}}",
+		"settings.dropdownBackground": "{{colors.surface_variant.light.hex}}",
+		"settings.dropdownForeground": "{{colors.on_surface_variant.light.hex}}",
+		"settings.dropdownBorder": "{{colors.outline.light.hex}}",
+		"settings.checkboxBackground": "{{colors.surface_variant.light.hex}}",
+		"settings.checkboxForeground": "{{colors.on_surface_variant.light.hex}}",
+		"settings.checkboxBorder": "{{colors.outline.light.hex}}",
+		"settings.textInputBackground": "{{colors.surface_variant.light.hex}}",
+		"settings.textInputForeground": "{{colors.on_surface_variant.light.hex}}",
+		"settings.textInputBorder": "{{colors.outline.light.hex}}",
+		"settings.numberInputBackground": "{{colors.surface_variant.light.hex}}",
+		"settings.numberInputForeground": "{{colors.on_surface_variant.light.hex}}",
+		"settings.numberInputBorder": "{{colors.outline.light.hex}}",
+		"breadcrumb.background": "{{colors.surface.light.hex}}",
+		"breadcrumb.foreground": "{{colors.on_surface_variant.light.hex}}",
+		"breadcrumb.focusForeground": "{{colors.primary.light.hex}}",
+		"breadcrumb.activeSelectionForeground": "{{colors.primary.light.hex}}",
+		"breadcrumbPicker.background": "{{colors.surface.light.hex}}",
+		"diffEditor.insertedTextBackground": "{{colors.secondary.light.hex}}20",
+		"diffEditor.removedTextBackground": "{{colors.error.light.hex}}20",
+		"diffEditor.diagonalFill": "{{colors.outline.light.hex}}40",
+		"debugExceptionWidget.background": "{{colors.surface.light.hex}}",
+		"debugExceptionWidget.border": "{{colors.outline.light.hex}}",
+		"editorGutter.commentRangeForeground": "{{colors.on_surface_variant.light.hex}}",
+		"icon.foreground": "{{colors.on_background.light.hex}}",
+		"minimapGutter.addedBackground": "{{colors.secondary.light.hex}}80",
+		"minimapGutter.modifiedBackground": "{{colors.primary.light.hex}}80",
+		"minimapGutter.deletedBackground": "{{colors.error.light.hex}}80",
+		"minimap.findMatchHighlight": "{{colors.primary.light.hex}}80",
+		"minimap.selectionHighlight": "{{colors.primary.light.hex}}40",
+		"minimap.errorHighlight": "{{colors.error.light.hex}}80",
+		"minimap.warningHighlight": "{{colors.secondary.light.hex}}80",
+		"minimap.background": "{{colors.background.light.hex}}",
+		"sideBar.dropBackground": "{{colors.surface_variant.light.hex}}40",
+		"editorGroup.emptyBackground": "{{colors.background.light.hex}}",
+		"panelSection.border": "{{colors.outline.light.hex}}",
+		"statusBarItem.activeBackground": "{{colors.primary.light.hex}}25",
+		"settings.focusedRowBackground": "{{colors.surface_variant.light.hex}}50",
+		"walkThrough.embeddedEditorBackground": "{{colors.surface.light.hex}}50",
+		"editorOverviewRuler.border": "{{colors.outline.light.hex}}",
+		"editorOverviewRuler.findMatchForeground": "{{colors.primary.light.hex}}",
+		"editorOverviewRuler.rangeHighlightForeground": "{{colors.primary.light.hex}}",
+		"editorOverviewRuler.selectionHighlightForeground": "{{colors.primary.light.hex}}",
+		"editorOverviewRuler.wordHighlightForeground": "{{colors.secondary.light.hex}}",
+		"editorOverviewRuler.wordHighlightStrongForeground": "{{colors.secondary.light.hex}}",
+		"editorOverviewRuler.modifiedForeground": "{{colors.primary.light.hex}}80",
+		"editorOverviewRuler.addedForeground": "{{colors.secondary.light.hex}}80",
+		"editorOverviewRuler.deletedForeground": "{{colors.error.light.hex}}80",
+		"editorOverviewRuler.errorForeground": "{{colors.error.light.hex}}",
+		"editorOverviewRuler.warningForeground": "{{colors.secondary.light.hex}}",
+		"editorOverviewRuler.infoForeground": "{{colors.tertiary.light.hex}}",
+		"editorGutter.foldingControlForeground": "{{colors.on_surface_variant.light.hex}}",
+		"editor.foldBackground": "{{colors.primary.light.hex}}4d",
+		"editorError.foreground": "{{colors.error.light.hex}}",
+		"editorError.background": "{{colors.error_container.light.hex}}00",
+		"editorError.border": "{{colors.outline.light.hex}}00",
+		"editorWarning.foreground": "{{colors.secondary.light.hex}}",
+		"editorWarning.background": "{{colors.secondary_container.light.hex}}00",
+		"editorWarning.border": "{{colors.outline.light.hex}}00",
+		"editorInfo.foreground": "{{colors.tertiary.light.hex}}",
+		"editorInfo.background": "{{colors.tertiary_container.light.hex}}00",
+		"editorInfo.border": "{{colors.outline.light.hex}}00",
+		"editorWhitespace.foreground": "{{colors.outline.light.hex}}29",
+		"widget.shadow": "{{colors.background.light.hex}}5c",
+		"editorWidget.resizeBorder": "{{colors.outline.light.hex}}",
+		"peekViewEditorGutter.background": "{{colors.surface.light.hex}}",
+		"peekViewEditor.matchHighlightBackground": "{{colors.tertiary.light.hex}}99",
+		"peekViewEditor.matchHighlightBorder": "{{colors.tertiary.light.hex}}",
+		"input.border": "{{colors.outline.light.hex}}00",
+		"textLink.foreground": "{{colors.primary.light.hex}}",
+		"textLink.activeForeground": "{{colors.primary_container.light.hex}}"
+	}
+}

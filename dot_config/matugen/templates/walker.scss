@@ -1,0 +1,21 @@
+$fg_main: {{colors.primary.default.hex}};
+
+$border_main: {{colors.primary.default.hex}};
+$border_alt: {{colors.secondary.default.hex}};
+
+$bg_main: {{colors.surface.default.hex}};
+$bg_alt: {{colors.surface_container.default.hex}};
+$bg_hover: {{colors.on_secondary.default.hex}};
+$bg_hover_alt: {{colors.on_tertiary.default.hex}};
+$bg_tooltip: {{colors.on_surface_variant.default.hex}};
+$bg_second: {{colors.secondary.default.hex}};
+$bg_third: {{colors.tertiary.default.hex}};
+
+$ply_main: {{colors.primary.default.hex}};
+$ply_hover: {{colors.surface_container_highest.default.hex}};
+$ply_act: {{colors.secondary.default.hex}};
+
+$border_rad:  0px; // Main border radius
+$border_rad2: 0px; // Second
+$border_radb: 4px; // Button
+$border_rads: 2px; // Scal

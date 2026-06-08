@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+  echo -e "===>  Changing GTK settings..."
+  {{ range $key, $val := .gtk -}}
+  gsettings set org.gnome.desktop.interface {{ $key | kebabcase }} {{ $val | quote }} && echo -e "===> {{ $key }} set to {{ $val }}"
+  {{ end -}}

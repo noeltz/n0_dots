@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# gitflow - interactive setup for git user/email and device-code OAuth authentication
+# Requires: git-credential-oauth (from AUR) installed and in PATH
+
+set -euo pipefail
+
+# Helper functions
+info() { echo "[INFO] $*"; }
+warn() { echo "[WARN] $*" >&2; }
+error() { echo "[ERROR] $*" >&2; exit 1; }
+
+# Check for git-credential-oauth
+if ! command -v git-credential-oauth &>/dev/null; then
+    error "git-credential-oauth not found. Please install it from the AUR (e.g., yay -S git-credential-manager-core or git-credential-oauth)."
+fi
+
+# 1. Ask for git username and email
+read -rp "Enter your Git username (e.g., noeltz): " GIT_USER
+read -rp "Enter your Git email (e.g., me@noeltz.de): " GIT_EMAIL
+
+if [[ -z "$GIT_USER" || -z "$GIT_EMAIL" ]]; then
+    error "Username and email must not be empty."
+fi
+
+info "Setting global git user.name and user.email..."
+git config --global user.name "$GIT_USER"
+git config --global user.email "$GIT_EMAIL"
+
+# Verify
+info "Current git config:"
+git config --global --get user.name
+git config --global --get user.email
+
+# 2. Configure git-credential-oauth as credential helper if not already
+CURRENT_HELPER=$(git config --global --get credential.helper 2>/dev/null || true)
+if [[ "$CURRENT_HELPER" != *"git-credential-oauth"* ]]; then
+    info "Configuring git-credential-oauth as global credential helper..."
+    git-credential-oauth configure
+else
+    info "git-credential-oauth already configured as credential helper."
+fi
+
+# 3. Trigger device-code flow
+info "Starting device-code authentication flow..."
+info "You will be shown a user code and a verification URL."
+info "Open the URL on another device (phone, laptop) and enter the code."
+echo
+
+# Feed the expected input to the helper: protocol=https and host=github.com
+if ! printf 'protocol=https\nhost=github.com\n\n' | git-credential-oauth -device get; then
+    error "Device-code authentication failed."
+fi
+
+info "Authentication successful! OAuth token stored in your system's secret store."
+info "You can now use git over HTTPS without further prompts."
+echo
+info "Test it with:"
+info "  git clone https://github.com/\$GIT_USER/<repo>.git"
+echo "Setup complete."

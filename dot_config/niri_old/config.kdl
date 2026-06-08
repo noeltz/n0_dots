@@ -1,0 +1,30 @@
+include "input.kdl"
+include "layout.kdl"
+include "animations.kdl"
+include "misc.kdl"
+include "rules.kdl"
+include "keybinds.kdl"
+include "startup.kdl"
+include "named-workspaces.kdl"
+include "recent-windows.kdl"
+
+// Auto-generated colors from noctalia: DO NOT EDIT
+include "noctalia.kdl"
+
+
+include "custom-shaders/close/slide-to-top.kdl"
+include "custom-shaders/open/slide-from-top.kdl"
+output "Virtual-1" {
+    mode "1920x1080@60.000"
+
+    scale 1.0
+
+    transform "normal"
+    position x=0 y=0
+}
+
+gestures {
+    hot-corners {
+        off
+    }
+}

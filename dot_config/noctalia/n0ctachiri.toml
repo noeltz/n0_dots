@@ -1,0 +1,142 @@
+[backdrop]
+enabled = true
+
+[bar.default]
+border = "primary"
+border_width = 2.0
+margin_edge = 0.0
+margin_ends = 0
+padding = 10
+position = "left"
+radius = 6
+thickness = 36
+widget_spacing = 16
+
+[desktop_widgets]
+enabled = false
+
+[idle]
+behavior_order = [ "lock", "screen-off", "suspend" ]
+
+    [idle.behavior.lock]
+    action = "lock"
+    enabled = true
+    timeout = 600
+
+    [idle.behavior.screen-off]
+    action = "screen_off"
+    enabled = false
+    timeout = 660
+
+    [idle.behavior.suspend]
+    action = "suspend"
+    enabled = false
+    lock_before_suspend = true
+    timeout = 900
+
+[location]
+address = "Bühl, Germany"
+
+[lockscreen_widgets]
+enabled = true
+schema_version = 2
+widget_order = [ "lockscreen-login-box@Virtual-1", "lockscreen-widget-0000000000000001" ]
+
+    [lockscreen_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@Virtual-1"]
+    box_height = 0.0
+    box_width = 0.0
+    cx = 960.0
+    cy = 957.0
+    output = "Virtual-1"
+    rotation = 0.0
+    type = "login_box"
+
+    [lockscreen_widgets.widget.lockscreen-widget-0000000000000001]
+    box_height = 272.0
+    box_width = 528.0
+    cx = 960.0
+    cy = 524.0
+    output = "Virtual-1"
+    rotation = 0.0
+    type = "clock"
+
+        [lockscreen_widgets.widget.lockscreen-widget-0000000000000001.settings]
+        background = false
+        color = "secondary"
+
+[notification]
+position = "top_left"
+
+[shell]
+font_family = "Maple Mono Normal NFMono"
+polkit_agent = true
+settings_show_advanced = true
+
+    [shell.shadow]
+    direction = "center"
+
+[theme]
+mode = "dark"
+source = "wallpaper"
+wallpaper_scheme = "faithful"
+
+    [theme.templates]
+    builtin_ids = [
+        "alacritty",
+        "btop",
+        "cava",
+        "gtk3",
+        "gtk4",
+        "ghostty",
+        "helix",
+        "kcolorscheme",
+        "kitty",
+        "niri",
+        "qt",
+        "starship",
+        "wezterm"
+    ]
+    community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi" ]
+
+[wallpaper]
+directory = "/home/noeltz/Pictures/Wallpapers"
+transition = [ "fade" ]
+
+    [wallpaper.default]
+    path = "/home/noeltz/Pictures/Wallpapers/wallhaven_zpz1ow.jpg"
+
+    [wallpaper.last]
+    path = "/home/noeltz/Pictures/Wallpapers/wallhaven_zpz1ow.jpg"
+
+    [wallpaper.monitors.Virtual-1]
+    path = "/home/noeltz/Pictures/Wallpapers/wallhaven_zpz1ow.jpg"
+
+[weather]
+address = "Bühl, Germany"
+
+[widget.clock]
+color = "secondary"
+font_weight = 300
+scale = 1.1500000000000001
+vertical_format = "{:%H}\\n--\\n{:%M}"
+
+[widget.control-center]
+color = "secondary"
+glyph = "settings"
+
+[widget.media]
+hide_when_no_media = true
+
+[widget.network]
+show_label = false
+
+[widget.session]
+color = "tertiary"
+
+[widget.volume]
+show_label = false

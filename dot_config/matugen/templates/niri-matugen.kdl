@@ -1,0 +1,32 @@
+layout {
+  border {
+    active-color "{{colors.primary.default.hex}}"
+    urgent-color "{{colors.error.default.hex}}"
+    inactive-color "{{colors.outline_variant.default.hex}}"
+  }
+
+  insert-hint {
+    gradient from="{{colors.primary.default.hex}}80" to="{{colors.secondary.default.hex}}80"
+  }
+
+  tab-indicator {
+    inactive-color "{{colors.primary_container.default.hex}}"
+  }
+
+  shadow {
+    color "{{colors.shadow.default.rgba | set_alpha: 0.7 }}"
+  }
+
+  background-color "{{colors.inverse_primary.default.hex}}"
+}
+
+overview {
+  backdrop-color "{{colors.surface.default.hex}}"
+}
+
+recent-windows {
+  highlight {
+    active-color "{{colors.primary.dark.hex}}"
+    urgent-color "{{colors.error.dark.hex}}"
+  }
+}

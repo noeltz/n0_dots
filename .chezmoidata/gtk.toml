@@ -1,0 +1,7 @@
+[gtk]
+colorScheme = "prefer-dark"
+cursorTheme = "Bibata-Modern-Ice"
+fontName = "Maple Mono Normal NFMono"
+monospaceFontName = "Maple Mono Normal NFMono"
+gtkTheme = "adw-gtk3-dark"
+iconTheme = "Papirus"

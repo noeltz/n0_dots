@@ -1,0 +1,140 @@
+"$schema" = "https://starship.rs/config-schema.json"
+
+format = """
+[╭─](foreground)\
+$python\
+$conda\
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$cmd_duration\
+$fill \
+$time\
+[─╮](foreground)
+[╰─](foreground)$status$character
+"""
+
+# ------------------------
+# Fill - extends to terminal width
+# ------------------------
+[fill]
+symbol = "─"
+style = "foreground"
+
+# ------------------------
+# Directory
+# ------------------------
+[directory]
+format = "[ $path]($style) "
+style = "cyan"
+truncation_length = 3
+truncate_to_repo = true
+truncation_symbol = "…/"
+
+# ------------------------
+# Character
+# ------------------------
+[character]
+success_symbol = "[❯](bold blue)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold green)"
+
+# ------------------------
+# Status (shows error indicator)
+# ------------------------
+[status]
+disabled = false
+format = "[✗ $status]($style) "
+style = "red"
+success_symbol = ""
+
+# ------------------------
+# Git
+# ------------------------
+[git_branch]
+format = "[ $branch]($style) "
+style = "bright-cyan"
+symbol = ""
+
+[git_state]
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+style = "bright-blue"
+
+[git_status]
+style = "blue"
+format = "[$modified$staged$untracked$renamed$deleted$conflicted$ahead_behind$stashed]($style) "
+modified = "*"
+staged = "+"
+untracked = "?"
+renamed = "»"
+deleted = "✘"
+conflicted = "!"
+stashed = "≡"
+ahead = "⇡"
+behind = "⇣"
+diverged = "⇕"
+
+# ------------------------
+# Command Duration
+# ------------------------
+[cmd_duration]
+format = "[󱦟 $duration]($style) "
+style = "magenta"
+min_time = 1000
+
+# ------------------------
+# Time
+# ------------------------
+[time]
+disabled = false
+format = "[$time]($style) "
+style = "bright-blue"
+time_format = "%H:%M:%S"
+
+# ------------------------
+# Python (virtualenv ONLY)
+# ------------------------
+[python]
+disabled = false
+format = "[ $virtualenv]($style) "
+style = "bright-cyan"
+symbol = ""
+detect_extensions = []
+detect_files = []
+detect_folders = []
+python_binary = []
+
+# ------------------------
+# Conda
+# ------------------------
+[conda]
+disabled = false
+format = "[ $environment]($style) "
+style = "bright-cyan"
+symbol = ""
+ignore_base = false
+
+# ------------------------
+# Additional modules
+# ------------------------
+[nodejs]
+format = "[ $version]($style) "
+style = "bright-cyan"
+symbol = ""
+
+[rust]
+format = "[ $version]($style) "
+style = "bright-cyan"
+symbol = ""
+
+[golang]
+format = "[ $version]($style) "
+style = "bright-cyan"
+symbol = ""
+
+[docker_context]
+format = "[ $context]($style) "
+style = "bright-cyan"
+symbol = ""
+

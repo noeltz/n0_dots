@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+ORANGE='\033[0;33m'
+NC='\033[0m' # No Color
+
+{{ range .packages.arch.pacman }}
+packages+=({{- . | quote -}})
+{{- end }}
+
+{{ range .packages.arch.aur }}
+aur_packages+=({{- . | quote -}})
+{{- end }}
+
+echo -e "\n===>  Installing base packages...\n"
+{{ .chezmoi.config.data.aurHelper }} -S --needed "${packages[@]}" || echo -e "\n${ORANGE}WARNING${NC}: Package installation failed.\n"
+
+echo -e "\n===>  Installing AUR packages...\n"
+{{ .chezmoi.config.data.aurHelper }} -S --needed "${aur_packages[@]}" || echo -e "\n${ORANGE}WARNING${NC}: Package installation failed.\n"

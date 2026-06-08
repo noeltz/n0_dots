@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}"
+src_dir="$config_dir/waybar/type"
+
+err() {
+  echo -e "$1" >&2
+}
+
+_change_preset() {
+  local PRESET_ERROR
+  local new_preset="$1"
+  if [ ! "$new_preset" ]; then
+    echo "No preset selected."
+    exit 1
+  elif [[ $# -ne 1 ]]; then
+    err "Error: Invalid number of arguments. (1 required, $# provided)"
+    exit 1
+  fi
+
+  # Waybar checks
+  if [[ ! -f "$config_dir/waybar/styles/$new_preset.css" || ! -f "$config_dir/waybar/type/$new_preset.jsonc" ]]; then
+    err "Error: Waybar preset not found."
+    PRESET_ERROR=true
+  fi
+
+  # SwayNC checks
+  if [[ ! -f "$config_dir/swaync/styles/$new_preset.css" || ! -f "$config_dir/swaync/type/$new_preset.json" ]]; then
+    err "Error: SwayNC preset not found."
+    PRESET_ERROR=true
+  fi
+
+  # Rofi checks
+  if [[ ! -f "$config_dir/rofi/styles/menu/$new_preset.rasi" ]]; then
+    echo -e "WARNING: Rofi menu preset not found. Loading default rofi theme."
+    USE_DEFAULT_ROFI=true
+  fi
+
+  if [ $PRESET_ERROR ]; then
+    return 1
+  fi
+
+  ln -sf "$config_dir/waybar/type/$new_preset.jsonc" "$config_dir/waybar/config.jsonc"
+  ln -sf "$config_dir/waybar/styles/$new_preset.css" "$config_dir/waybar/main-preset.css"
+  ln -sf "$config_dir/swaync/type/$new_preset.json" "$config_dir/swaync/config.json"
+  ln -sf "$config_dir/swaync/styles/$new_preset.css" "$config_dir/swaync/style.css"
+  if [ "$USE_DEFAULT_ROFI" ]; then
+    ln -sf "$config_dir/rofi/config.rasi" "$config_dir/rofi/menu.rasi"
+  else
+    ln -sf "$config_dir/rofi/styles/menu/$new_preset.rasi" "$config_dir/rofi/menu.rasi"
+  fi
+
+  # Reloads necessary software
+  test "$(systemctl --user is-active waybar)" = "active" && systemctl --user restart waybar
+  test "$(systemctl --user is-active swaync)" = "active" && systemctl --user reload swaync
+
+  notify-send -e -t 3000 "New preset loaded..." "Current preset: <b>$1</b>"
+}
+
+_select_from_rofi() {
+  mapfile -t files < <(
+    find "$src_dir" -maxdepth 1 -type f,l -name "*.jsonc" -print0 | xargs -0 -I{} basename "{}" .jsonc | sort
+  )
+
+  local current_preset
+  current_preset="$(basename "$(readlink "$config_dir/waybar/config.jsonc")" .jsonc)"
+
+  if [ -n "$(pgrep rofi)" ]; then
+    pkill -x rofi
+    exit
+  fi
+
+  selected_presets=$(
+    printf "%s\n" "${files[@]}" | rofi -dmenu \
+      -mesg "<b>Current preset:</b> $current_preset" \
+      -theme-str 'entry {placeholder: "Select desktop presets...";}' \
+      -theme-str 'mode-switcher {enabled: false;}' \
+      -theme-str 'configuration {show-icons: false;}'
+  )
+  if [ -n "$selected_presets" ]; then
+    echo "$selected_presets"
+  else
+    return 1
+  fi
+}
+
+if [ -n "$1" ]; then
+  _change_preset "$1"
+else
+  _change_preset "$(_select_from_rofi)"
+fi

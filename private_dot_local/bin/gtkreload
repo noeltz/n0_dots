@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+# Get Desired Mode
+MODE=$(noctalia msg theme-mode-get)
+
+if [[ "$MODE" == "light" ]]; then
+    SHOCK_THEME="HighContrastInverse"
+    SHOCK_SCHEME="prefer-dark"
+else
+    SHOCK_THEME="HighContrast"
+    SHOCK_SCHEME="prefer-light"
+fi
+
+# Shock (Force Cache Dump)
+echo "Shocking system to clear cache..."
+gsettings set org.gnome.desktop.interface gtk-theme "$SHOCK_THEME"
+sleep 0.1
+gsettings set org.gnome.desktop.interface color-scheme "$SHOCK_SCHEME"
+
+# CRITICAL: Wait for the system to process the shock.
+sleep 0.3
+
+# Restore (Reload with New Colors)
+/usr/share/noctalia/assets/templates/gtk/apply.sh $MODE
+
+echo "Done."
