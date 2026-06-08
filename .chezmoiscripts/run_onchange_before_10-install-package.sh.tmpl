@@ -1,18 +1,27 @@
 #!/usr/bin/env bash
+# run_onchange_before_10-install-package.sh - Install packages via AUR helper
 
-ORANGE='\033[0;33m'
-NC='\033[0m' # No Color
+# Installs system and AUR packages using the configured AUR helper.
+# Reads package lists from .chezmoidata/packages.toml.
+# Exit codes: 0 (success), 1 (failure)
+
+{{ template "run_onchange_hash" . -}}
+
+packages=()
+aur_packages=()
 
 {{ range .packages.arch.pacman }}
 packages+=({{- . | quote -}})
-{{- end }}
+{{ end }}
 
 {{ range .packages.arch.aur }}
 aur_packages+=({{- . | quote -}})
-{{- end }}
+{{ end }}
 
-echo -e "\n===>  Installing base packages...\n"
-{{ .chezmoi.config.data.aurHelper }} -S --needed "${packages[@]}" || echo -e "\n${ORANGE}WARNING${NC}: Package installation failed.\n"
+log_step() { printf '%b\n' "$1" >&2; }
 
-echo -e "\n===>  Installing AUR packages...\n"
-{{ .chezmoi.config.data.aurHelper }} -S --needed "${aur_packages[@]}" || echo -e "\n${ORANGE}WARNING${NC}: Package installation failed.\n"
+log_step "> Installing base packages..."
+{{ .chezmoi.config.data.aurHelper }} -S --needed "${packages[@]}" || log_step "WARNING: Package installation failed."
+
+log_step "> Installing AUR packages..."
+{{ .chezmoi.config.data.aurHelper }} -S --needed "${aur_packages[@]}" || log_step "WARNING: AUR package installation failed."

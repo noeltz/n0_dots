@@ -1,40 +1,39 @@
 #!/usr/bin/env bash
+# run_once_before_00-install-aur-helper.sh - Install AUR helper and configure Chaotic-AUR
+
+# Installs the configured AUR helper (paru/yay) and sets up Chaotic-AUR
+# repository for Arch Linux. Skips if already configured.
+# Exit codes: 0 (success), 1 (failure)
+
 set -euo pipefail
 
-_install_confirm() {
-  local response
-  echo -n -e "$1"
-  read -r response
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
 
-  if [[ "$response" =~ ^[Yy]$|^$ ]]; then
-    return 0
-  else
-    return 1
-  fi
-}
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+log STEP "Setting up AUR helper and Chaotic-AUR"
 
 # --- Chaotic AUR ---
-sudo pacman -S --needed base-devel
 if ! grep -q '^\[chaotic-aur\]' /etc/pacman.conf; then
-    echo -e "===>  Setting up Chaotic AUR..."
-    sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
-    sudo pacman-key --lsign-key 3056513887B78AEB
-    sudo pacman -U --noconfirm --needed \
-        'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
-        'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
-
-    printf '\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist\n' \
-        | sudo tee -a /etc/pacman.conf >/dev/null
-
-    sudo pacman -Sy --noconfirm
-    echo -e "===>  Chaotic AUR added."
+  log INFO "Setting up Chaotic AUR..."
+  sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
+  sudo pacman-key --lsign-key 3056513887B78AEB
+  sudo pacman -U --noconfirm --needed \
+    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
+    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+  printf '\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist\n' \
+    | sudo tee -a /etc/pacman.conf >/dev/null
+  sudo pacman -Sy --noconfirm
+  log INFO "Chaotic AUR added."
 else
-    echo -e "===>  Chaotic AUR already configured, skipping."
+  log SKIP "Chaotic AUR already configured"
 fi
 
+# --- AUR Helper ---
 if ! command -v {{ .chezmoi.config.data.aurHelper }} &>/dev/null; then
-  if _install_confirm "===>  {{ .chezmoi.config.data.aurHelper }} is not installed. Install {{ .chezmoi.config.data.aurHelper -}}? [Y/n] " -eq 0; then
-    echo -e "===>  Installing {{ .chezmoi.config.data.aurHelper -}}..."
+  if confirm "{{ .chezmoi.config.data.aurHelper }} is not installed. Install it?"; then
+    log STEP "Installing {{ .chezmoi.config.data.aurHelper -}}"
     sudo pacman -S --needed base-devel
     git clone https://aur.archlinux.org/{{- .chezmoi.config.data.aurHelper -}}-bin.git /tmp/aur-helper
     (
@@ -43,5 +42,5 @@ if ! command -v {{ .chezmoi.config.data.aurHelper }} &>/dev/null; then
     )
   fi
 else
-  echo -e "===>  {{ .chezmoi.config.data.aurHelper }} is installed. Skipping..."
+  log SKIP "{{ .chezmoi.config.data.aurHelper }} is installed"
 fi

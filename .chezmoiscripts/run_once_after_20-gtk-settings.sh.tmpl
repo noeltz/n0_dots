@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
+# run_once_after_20-gtk-settings.sh - Configure GTK settings via gsettings
 
-  echo -e "===>  Changing GTK settings..."
-  {{ range $key, $val := .gtk -}}
-  gsettings set org.gnome.desktop.interface {{ $key | kebabcase }} {{ $val | quote }} && echo -e "===> {{ $key }} set to {{ $val }}"
-  {{ end -}}
+# Applies GTK interface settings from chezmoi data.
+# Exit codes: 0 (success), 1 (failure)
+
+set -euo pipefail
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+log STEP "Changing GTK settings..."
+
+{{ range $key, $val := .gtk -}}
+gsettings set org.gnome.desktop.interface {{ $key | kebabcase }} {{ $val | quote }} && log INFO "{{ $key }} set to {{ $val }}"
+{{ end -}}

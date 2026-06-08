@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
+# run_once_after_10-systemd-service.sh - Configure systemd user services
 
-_install_confirm() {
-  local response
-  echo -n -e "$1"
-  read -r response
+# Adds specified systemd user services to niri.service as dependencies.
+# Exit codes: 0 (success), 1 (failure)
 
-  if [[ "$response" =~ ^[Yy]$|^$ ]]; then
-    return 0
-  else
-    return 1
+{{ template "run_onchange_hash" . -}}
+
+set -euo pipefail
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+main() {
+  if confirm "Add necessary systemd services?" "y"; then
+    log STEP "Adding necessary user services..."
+    systemctl --user daemon-reload
+    {{ range .services -}}
+    systemctl --user add-wants niri.service {{ . | quote }} && log INFO "Added {{ . }} service"
+    {{ end -}}
+    systemctl --user daemon-reload
   fi
 }
 
-if _install_confirm "Add necessary systemd services? [Y/n] " -eq 0; then
-  echo -e "===>  Adding necessary user services..."
-  systemctl --user daemon-reload
-  {{ range .services -}}
-  systemctl --user add-wants niri.service {{ . | quote }} && echo "===>  Added {{ . -}}.service"
-  {{ end -}}
-  systemctl --user daemon-reload
-fi
+main "$@"

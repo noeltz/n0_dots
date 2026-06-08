@@ -1,23 +1,30 @@
 #!/usr/bin/env bash
+# run_once_after_90-matugen.sh - Regenerate colors with matugen (deprecated)
+
+# Legacy script for matugen color generation. Functionality deprecated
+# in favor of noctalia v5 integrated styling.
+# Exit codes: 0 (success), 1 (failure)
 
 pkg_dir="{{- .chezmoi.sourceDir -}}/assets/install"
 
-_install_confirm() {
-  local response
-  echo -n -e "$1"
-  read -r response
+set -euo pipefail
 
-  if [[ "$response" =~ ^[Yy]$|^$ ]]; then
-    return 0
-  else
-    return 1
-  fi
-}
-if _install_confirm "Regenerate colors with matugen? [Y/n] " -eq 0; then
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+if confirm "Regenerate colors with matugen?"; then
   export PATH="$HOME/.local/bin:$PATH"
-  if [ $(matugen -V | awk '{printf $2}' | cut -d. -f1) -ge 4 ]; then
-    #matugen image "$pkg_dir/default-bg.png" --continue-on-error -m light --source-color-index 0
+  if command -v matugen >/dev/null 2>&1; then
+    matugen_version=$(matugen -V 2>/dev/null | awk '{print $2}' | cut -d. -f1 || echo "0")
+    if [[ "$matugen_version" -ge 4 ]]; then
+      :  # matugen image "$pkg_dir/default-bg.png" --continue-on-error -m light --source-color-index 0
+    else
+      :  # matugen image "$pkg_dir/default-bg.png" --continue-on-error -m light
+    fi
+    log INFO "Matugen color generation skipped (deprecated - use noctalia v5)"
   else
-    #matugen image "$pkg_dir/default-bg.png" --continue-on-error -m light
+    log SKIP "Matugen not installed (skipping - use noctalia v5)"
   fi
 fi
