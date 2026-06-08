@@ -1,18 +1,15 @@
 # n0_dots - Chezmoi Dotfiles
 
-A chezmoi-managed dotfiles repository for Arch Linux systems featuring Niri, Zsh, and Neovim configurations.
+A chezmoi-managed dotfiles repository for Arch Linux systems featuring Niri Window Manager and Noctalia Shell
 
 ![Niri](https://img.shields.io/badge/Wayland-Niri-0078D7?logo=linux&logoColor=white)
 ![Shell](https://img.shields.io/badge/Shell-Zsh-81A1C1?logo=gnu-bash&logoColor=white)
-![Editor](https://img.shields.io/badge/Editor-Neovim-0DB7ED?logo=neovim&logoColor=white)
 
 ## Features
 
 - **Niri** - Scrollable-tiling Wayland compositor configuration
 - **Zsh** - Shell configuration with sheldon plugin manager
-- **Neovim** - LazyVim-based configuration
-- **Noctalia v5** - Integrated styling system
-- **Matugen templates** - Color theming templates (for compatibility)
+- **Noctalia** - Integrated styling system
 - **XDG compliant** - Follows XDG Base Directory specification
 
 ## Quick Start

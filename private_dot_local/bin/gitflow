@@ -16,7 +16,7 @@ fi
 
 # 1. Ask for git username and email
 read -rp "Enter your Git username (e.g., noeltz): " GIT_USER
-read -rp "Enter your Git email (e.g., me@noeltz.de): " GIT_EMAIL
+read -rp "Enter your Git email (e.g., me@blubb.com): " GIT_EMAIL
 
 if [[ -z "$GIT_USER" || -z "$GIT_EMAIL" ]]; then
     error "Username and email must not be empty."
