@@ -1,19 +1,23 @@
 # n0_dots - Chezmoi Dotfiles
 
-A cross-platform dotfiles repository managed by [chezmoi](https://www.chezmoi.io/) for Arch Linux and Fedora systems.
+A chezmoi-managed dotfiles repository for Arch Linux systems featuring Niri, Zsh, and Neovim configurations.
+
+![Niri](https://img.shields.io/badge/Wayland-Niri-0078D7?logo=linux&logoColor=white)
+![Shell](https://img.shields.io/badge/Shell-Zsh-81A1C1?logo=gnu-bash&logoColor=white)
+![Editor](https://img.shields.io/badge/Editor-Neovim-0DB7ED?logo=neovim&logoColor=white)
 
 ## Features
 
 - **Niri** - Scrollable-tiling Wayland compositor configuration
 - **Zsh** - Shell configuration with sheldon plugin manager
 - **Neovim** - LazyVim-based configuration
-- **Matugen templates** - Color theming templates (for compatibility)
 - **Noctalia v5** - Integrated styling system
+- **Matugen templates** - Color theming templates (for compatibility)
 - **XDG compliant** - Follows XDG Base Directory specification
 
 ## Quick Start
 
-### Initial Installation (Fresh Arch Linux)
+### Install on Arch Linux
 
 ```bash
 # Install chezmoi
@@ -24,28 +28,15 @@ chezmoi init --apply https://github.com/noeltz/n0_dots.git
 
 # Or initialize without applying, then review
 chezmoi init https://github.com/noeltz/n0_dots.git
-chezmoi edit ~/.config/nvim/lua/plugins/example.lua  # Make customizations
-
-# Apply all dotfiles
-chezmoi apply
-```
-
-### Initial Installation (Fresh Fedora)
-
-```bash
-# Install chezmoi
-sudo dnf install chezmoi
-
-# Initialize from this repository
-chezmoi init --apply https://github.com/noeltz/n0_dots.git
+chezmoi edit ~/.config/nvim/lua/plugins/example.lua
 chezmoi apply
 ```
 
 ---
 
-## Daily Usage
+## Usage
 
-### Check Status
+### View Status
 
 ```bash
 # See what files differ from the repository
@@ -55,67 +46,34 @@ chezmoi status
 chezmoi diff
 ```
 
-### Apply Changes from Repository
+### Apply Updates from Repository
 
 ```bash
 # Pull latest changes and apply
 chezmoi pull
 chezmoi apply
-
-# Or in one command
-chezmoi source pull && chezmoi apply
 ```
 
-### Push Local Changes to Repository
+### Contribute Changes Back
 
 ```bash
 # Make a change to a dotfile
 chezmoi edit ~/.zshrc
 
-# The file opens in your editor with the source version
 # Save and quit to apply the change
 
-# Then push back to the repository
+# Push changes back to the repository
 chezmoi re-add ~/.zshrc
 chezmoi source push
 ```
 
----
+### Fork & Customize
 
-## Workflow for Multiple Machines
-
-This repository is designed for synchronization across multiple machines.
-
-### Adding a New Machine
-
-```bash
-# On the new machine
-chezmoi init https://github.com/noeltz/n0_dots.git
-chezmoi apply
-```
-
-### Keeping Machines in Sync
-
-```bash
-# Before starting work on a machine - get latest
-chezmoi pull
-chezmoi apply
-
-# After making changes - push them
-chezmoi re-add               # Re-add all modified files to source
-chezmoi source push          # Push to git repository
-```
-
-### Template Variables (One-time Setup)
-
-On first initialization, chezmoi will prompt for AUR helper selection:
-
-```
-Which AUR helper would you like to use:
-1. paru
-2. yay
-[Default: paru]
-```
+1. Fork this repository
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/n0_dots.git`
+3. Make customizations to files
+4. Push to your fork: `git push origin main`
+5. On your machines: `chezmoi init --apply https://github.com/YOUR_USERNAME/n0_dots.git`
 
 ---
 
@@ -131,8 +89,8 @@ These scripts run automatically during `chezmoi apply`:
 | `run_once_after_11-fonts_and_icons.sh` | First apply | Download and install fonts/icons |
 | `run_once_after_20-gtk-settings.sh` | First apply | Apply GTK settings |
 | `run_once_before_99-switch-shell.sh` | First apply | Switch default shell to zsh |
-| `run_onchange_after_80_wallpapers.sh` | When wallpapers change | Download wallpapers |
-| `run_onchange_after_91-helium-browser.sh` | When browser config changes | Configure Helium browser DRM |
+| `run_onchange_after_80_wallpapers.sh` | When changed | Download wallpapers |
+| `run_onchange_after_91-helium-browser.sh` | When changed | Configure Helium browser DRM |
 
 ---
 
@@ -140,20 +98,22 @@ These scripts run automatically during `chezmoi apply`:
 
 ```
 n0_dots/
-├── .chezmoicompiled/       # Compiled templates (auto-generated)
-├── .chezmoiignore           # Files to ignore
-├── .chezmoitemplates/       # Reusable template snippets
 ├── .chezmoiscripts/         # Installation and configuration scripts
 │   ├── lib/                 # Shared library functions
-│   │   ├── .lib-common.sh
+│   │   ├── .lib-common.sh   # Core utilities (log, confirm, die)
 │   │   ├── .lib-package_manager.sh
-│   │   └── ...
+│   │   ├── .lib-chaotic_aur.sh
+│   │   └── .lib-aur_helper.sh
 │   └── run_once_*.sh*       # Installation hooks
 ├── .chezmoidata/            # Configuration data files
-│   └── packages.toml        # Package lists
+│   └── packages.toml          # Arch package lists
 ├── dot_config/              # ~/.config files
+│   ├── niri/                # Niri compositor config
+│   ├── nvim/                # Neovim configuration
+│   ├── zsh/                 # Zsh configuration
+│   └── matugen/             # Matugen templates
 ├── dot_zshenv               # ~/.zshenv
-├── private_dot_local/       # ~/.local files (scripts, data)
+├── private_dot_local/       # ~/.local files (scripts)
 └── Pictures/                # Wallpaper assets
 ```
 
@@ -162,23 +122,33 @@ n0_dots/
 ## Useful Commands
 
 ```bash
-# Edit dotfile in source (preserves chezmoi template syntax)
+# Edit dotfile source (preserves template syntax)
 chezmoi edit ~/.config/niri/config.kdl
-
-# Edit dotfile destination (no template processing)
-chezmoi edit --destination ~/.config/niri/config.kdl
-
-# Remove a dotfile from management
-chezmoi remove ~/.config/ some/file
 
 # List all managed files
 chezmoi list
 
+# Remove a dotfile from management
+chezmoi remove ~/.config/nvim/init.lua
+
 # Forget local changes (reset to repository state)
 chezmoi forget ~/.zshrc
 
-# Generate a simple bash script
-chezmoi edit ~/.local/bin/executable_myscript.sh
+# Add untracked file
+chezmoi add ~/.config/new-config/file.conf
+```
+
+---
+
+## Template Variables
+
+On first initialization, chezmoi prompts for AUR helper selection:
+
+```
+Which AUR helper would you like to use:
+1. paru
+2. yay
+[Default: paru]
 ```
 
 ---
