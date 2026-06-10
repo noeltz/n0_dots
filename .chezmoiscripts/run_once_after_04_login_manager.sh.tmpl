@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 04_login_manager.sh - Configure Ly display manager
+# 04_login_manager.sh - Configure greetd display manager
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . }}
@@ -12,15 +12,14 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
-readonly LY_CONFIG_FILE="/etc/ly/config.ini"
-readonly LY_SAVE_FILE="/etc/ly/save.ini"
+readonly GREETD_CONFIG_FILE="/etc/greetd/config.toml"
 
 if ! keep_sudo_alive; then
   die "Failed to keep sudo alive"
 fi
 
 disable_conflicting_dms() {
-  local -r other_dms=(sddm greetd gdm gdm3 lightdm lxdm emptty)
+  local -r other_dms=(sddm gdm gdm3 lightdm lxdm emptty)
 
   local svc status
   for svc in "${other_dms[@]}"; do
@@ -39,81 +38,35 @@ disable_conflicting_dms() {
   log SKIP "No conflicting display managers found"
 }
 
-configure_ly() {
-  declare -A ly_config=(
-    ["allow_empty_password"]="false"
-    ["clear_password"]="true"
-    ["bg"]="0"
-    ["fg"]="8"
-    ["bigclock"]="en"
-    ["hide_key_hints"]="true"
-    ["border_fg"]="8"
-    ["path"]="null"
-    ["sleep_cmd"]="systemctl suspend"
-    ["session_log"]="/tmp/ly-session.log"
-  )
+configure_greetd() {
+  write_system_config "$GREETD_CONFIG_FILE" <<EOF || die "Failed to write greetd config file: $LAST_ERROR"
+[terminal]
+vt = 1
 
-  local key
-  for key in "${!ly_config[@]}"; do
-    if ! update_config "$LY_CONFIG_FILE" "$key" "${ly_config[$key]}"; then
-      die "Failed to update ly config: $LAST_ERROR"
-    fi
-  done
-
-  write_system_config "$LY_SAVE_FILE" <<EOF || die "Failed to write ly save file: $LAST_ERROR"
-user=${USER}
-session_index=2
+[default_session]
+# tuigreet remembers the last user and launches niri-session
+command = "tuigreet --time --remember --cmd niri-session"
+user = "${USER}"
 EOF
 
-  log INFO "Configured ly display manager"
-}
-
-disable_getty_tty2() {
-  if sudo systemctl disable getty@tty2.service >/dev/null 2>&1; then
-    log INFO "Disabled getty@tty2.service"
-  else
-    log WARN "Failed to disable getty@tty2.service"
-  fi
-}
-
-setup_niri_session() {
-  local -r session_file="/usr/share/wayland-sessions/niri-uwsm.desktop"
-
-  if [[ -f "$session_file" ]]; then
-    log SKIP "niri-uwsm session already configured"
-    return 0
-  fi
-
-  write_system_config "$session_file" <<'EOF' || die "Failed to create niri session file: $LAST_ERROR"
-[Desktop Entry]
-Name=Niri (uwsm-managed)
-Comment=A scrollable-tiling Wayland compositor
-Exec=uwsm start -- niri.desktop
-TryExec=uwsm
-Type=Application
-DesktopNames=niri
-EOF
-
-  log INFO "Created niri-uwsm session file"
+  log INFO "Configured greetd display manager"
 }
 
 main() {
 
-  print_box "LY"
-  log STEP "Ly Configuration"
+  print_box "Login Manager"
+  log STEP "greetd Configuration"
 
   disable_conflicting_dms
-  configure_ly
+  configure_greetd
 
-  if ! enable_service "ly@tty2.service" "system"; then
+  if ! enable_service "greetd" "system"; then
     die "Failed : $LAST_ERROR"
   else
-    log INFO "${COLOR_GREEN}ly.service${COLOR_RESET} enabled"
+    log INFO "${COLOR_GREEN}greetd.service${COLOR_RESET} enabled"
   fi
 
-  disable_getty_tty2
-
-  log INFO "Ly display manager configuration complete"
+  log INFO "greetd display manager configuration complete"
 }
 
 main "$@"
