@@ -16,16 +16,17 @@ fi
 echo "Switch gtk-theme, color-scheme and icon-theme settings to clear cache..."
 gsettings set org.gnome.desktop.interface gtk-theme "$SHOCK_THEME"
 sleep 0.1
-gsettings set org.gnome.desktop.interface icon-theme "hicolor"
-sleep 0.1
 gsettings set org.gnome.desktop.interface color-scheme "$SHOCK_SCHEME"
-sleep 0.1
-gsettings set org.gnome.desktop.interface icon-theme "$ICONS"
+
 
 # CRITICAL: Wait for the system to process the shock.
 sleep 0.3
 
 # Restore (Reload with New Colors)
 /usr/share/noctalia/assets/templates/gtk/apply.sh $MODE
+sleep 0.3
+gsettings set org.gnome.desktop.interface icon-theme "hicolor"
+sleep 0.2
+gsettings set org.gnome.desktop.interface icon-theme "$ICONS"
 
 echo "Done."
