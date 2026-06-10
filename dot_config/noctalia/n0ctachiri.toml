@@ -98,7 +98,6 @@ wallpaper_scheme = "faithful"
         "kitty",
         "niri",
         "qt",
-        "starship",
         "wezterm"
     ]
     community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi" ]
