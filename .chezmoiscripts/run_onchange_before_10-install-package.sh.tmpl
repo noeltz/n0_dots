@@ -19,9 +19,12 @@ aur_packages+=({{- . | quote -}})
 {{ end }}
 
 log_step() { printf '%b\n' "$1" >&2; }
+die() { log_step "$1"; exit 1; }
+
+command -v paru >/dev/null 2>&1 || die "paru is not installed. Run_once_before_00-install-aur-helper must run first."
 
 log_step "> Installing base packages..."
-{{ .chezmoi.config.data.aurHelper }} -S --needed "${packages[@]}" || log_step "WARNING: Package installation failed."
+paru -S --needed "${packages[@]}" || log_step "WARNING: Package installation failed."
 
 log_step "> Installing AUR packages..."
-{{ .chezmoi.config.data.aurHelper }} -S --needed "${aur_packages[@]}" || log_step "WARNING: AUR package installation failed."
+paru -S --needed "${aur_packages[@]}" || log_step "WARNING: AUR package installation failed."
