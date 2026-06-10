@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # run_once_after_03-disable-plymouth.sh - Disable Plymouth splash screen
 #
-# Checks if Plymouth is active and disables all systemd services and removes
-# the plymouth hook from mkinitcpio. Ensures clean boot without graphical
-# splash for systems that ship with Plymouth pre-enabled.
+# Detects if Plymouth is active and disables it by removing the plymouth hook
+# from mkinitcpio, updating kernel cmdline (across all bootloaders), disabling
+# systemd services, and regenerating initramfs.
 #
 # Globals:
 #   LAST_ERROR - Error message from last failed operation
@@ -25,6 +25,18 @@ source "$LIB_DIR/.lib-snapboot.sh"
 
 readonly PLYMOUTH_PACKAGE="plymouth"
 readonly MKINITCPIO_CONF="/etc/mkinitcpio.conf"
+readonly GRUB_FILE="/etc/default/grub"
+readonly LIMINE_DROPIN_DIR="/etc/limine-entry-tool.d"
+readonly SYSTEMD_CMDLINE_FILE="/etc/kernel/cmdline"
+
+# Known plymouth service names to try as fallback
+readonly -a PLYMOUTH_SERVICES=(
+  plymouth-start.service
+  plymouth-quit.service
+  plymouth-quit-wait.service
+  plymouth-switch-root.service
+  plymouth-read-write.service
+)
 
 # Checks if Plymouth package is installed.
 #
@@ -34,12 +46,57 @@ _plymouth_installed() {
   pacman -Qi "$PLYMOUTH_PACKAGE" >/dev/null 2>&1
 }
 
-# Checks if any Plymouth systemd services are enabled.
+# Checks if Plymouth is considered active.
 #
+# Returns 0 if any of the following is true: package installed with
+# plymouth in mkinitcpio HOOKS, or the splash kernel parameter present.
+# Returns 1 if none indicate Plymouth is active.
+_plymouth_is_active() {
+  LAST_ERROR=""
+
+  if ! _plymouth_installed; then
+    return 1
+  fi
+
+  # Check mkinitcpio HOOKS for plymouth
+  if [[ -f "$MKINITCPIO_CONF" ]]; then
+    local hooks
+    hooks=$(sed -nE 's/^[[:space:]]*HOOKS=\((.*)\)[[:space:]]*$/\1/p' "$MKINITCPIO_CONF" 2>/dev/null | head -n1)
+    if [[ " ${hooks:-} " = *" plymouth "* ]]; then
+      return 0
+    fi
+  fi
+
+  # Check if any plymouth systemd units exist
+  if systemctl list-unit-files 2>/dev/null | grep -q '^plymouth-'; then
+    return 0
+  fi
+
+  if systemctl list-units --all 2>/dev/null | grep -q 'plymouth'; then
+    return 0
+  fi
+
+  return 1
+}
+
+# Collects all plymouth systemd service names using multiple methods.
+#
+# Tries list-unit-files first, then list-units --all, then falls back
+# to known service names.
+#
+# Outputs:
+#   Service names to stdout, one per line
 # Returns:
-#   0 if any plymouth-* services are present, 1 otherwise
-_plymouth_services_enabled() {
-  systemctl list-unit-files 2>/dev/null | grep -q '^plymouth-'
+#   0 if any services found, 1 otherwise
+_collect_plymouth_services() {
+  (
+    # Method 1: persistent unit files
+    systemctl list-unit-files 2>/dev/null | awk '/^plymouth-/ {print $1}'
+    # Method 2: loaded units
+    systemctl list-units --all 2>/dev/null | awk '/plymouth/ {print $1}'
+    # Method 3: known names
+    printf '%s\n' "${PLYMOUTH_SERVICES[@]}"
+  ) | sort -u
 }
 
 # Disables, stops, and masks all plymouth-* systemd services.
@@ -47,38 +104,45 @@ _plymouth_services_enabled() {
 # Globals:
 #   LAST_ERROR - Set on failure
 # Returns:
-#   0 on success, 1 on failure
+#   0 always (non-fatal)
 _disable_plymouth_services() {
   LAST_ERROR=""
 
   local services
-  services=$(systemctl list-unit-files 2>/dev/null | awk '/^plymouth-/ {print $1}') || true
+  services=$(_collect_plymouth_services)
 
   if [[ -z "${services:-}" ]]; then
+    log SKIP "No Plymouth systemd services found"
     return 0
   fi
 
+  local found=0
   local svc
-  for svc in $services; do
+  while IFS= read -r svc; do
+    [[ -z "$svc" ]] && continue
+
     if systemctl is-enabled "$svc" >/dev/null 2>&1; then
-      if ! sudo systemctl disable "$svc" >/dev/null 2>&1; then
-        log WARN "Failed to disable $svc"
-      else
-        log INFO "Disabled ${COLOR_CYAN}$svc${COLOR_RESET}"
-      fi
+      sudo systemctl disable "$svc" >/dev/null 2>&1 || true
+      log INFO "Disabled ${COLOR_CYAN}$svc${COLOR_RESET}"
+      found=1
     fi
 
     if systemctl is-active "$svc" >/dev/null 2>&1; then
       sudo systemctl stop "$svc" >/dev/null 2>&1 || true
+      log INFO "Stopped ${COLOR_CYAN}$svc${COLOR_RESET}"
+      found=1
     fi
 
-    if ! sudo systemctl mask "$svc" >/dev/null 2>&1; then
-      LAST_ERROR="Failed to mask $svc"
-      return 1
+    if systemctl list-unit-files 2>/dev/null | grep -q "^${svc}[[:space:]]"; then
+      sudo systemctl mask "$svc" >/dev/null 2>&1 || true
+      log INFO "Masked ${COLOR_CYAN}$svc${COLOR_RESET}"
+      found=1
     fi
+  done <<<"$services"
 
-    log INFO "Masked ${COLOR_CYAN}$svc${COLOR_RESET}"
-  done
+  if [[ "$found" -eq 0 ]]; then
+    log SKIP "No active Plymouth services to disable"
+  fi
 
   return 0
 }
@@ -96,6 +160,7 @@ _remove_plymouth_from_mkinitcpio() {
   LAST_ERROR=""
 
   if [[ ! -f "$MKINITCPIO_CONF" ]]; then
+    log SKIP "mkinitcpio.conf not found"
     return 0
   fi
 
@@ -103,11 +168,12 @@ _remove_plymouth_from_mkinitcpio() {
   current_hooks=$(sed -nE 's/^[[:space:]]*HOOKS=\((.*)\)[[:space:]]*$/\1/p' "$MKINITCPIO_CONF" 2>/dev/null | head -n1)
 
   if [[ -z "$current_hooks" ]]; then
+    log SKIP "Could not parse HOOKS from mkinitcpio"
     return 0
   fi
 
   if [[ " $current_hooks " != *" plymouth "* ]]; then
-    log SKIP "plymouth hook not present in mkinitcpio"
+    log SKIP "Plymouth hook not present in mkinitcpio"
     return 0
   fi
 
@@ -123,31 +189,180 @@ _remove_plymouth_from_mkinitcpio() {
   return 0
 }
 
+# Removes 'splash' from a kernel cmdline string and adds plymouth.enable=0.
+#
+# Arguments:
+#   $1 - Current cmdline string
+# Outputs:
+#   Modified cmdline to stdout
+_clean_cmdline() {
+  local current="${1:-}"
+  local cleaned
+
+  # Remove 'splash' parameter
+  cleaned=$(printf '%s' "$current" | sed 's/\bsplash\b//g' | tr -s ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+  # Add plymouth.enable=0 using build_cmdline (handles dedup)
+  build_cmdline "$cleaned" "plymouth.enable=0"
+}
+
+# Updates GRUB kernel cmdline to remove splash and add plymouth.enable=0.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success, 1 on failure
+_update_grub_cmdline() {
+  LAST_ERROR=""
+
+  if [[ ! -f "$GRUB_FILE" ]]; then
+    log SKIP "GRUB config not found"
+    return 0
+  fi
+
+  local current
+  current=$(sed -nE 's/^GRUB_CMDLINE_LINUX_DEFAULT="(.*)"/\1/p' "$GRUB_FILE" 2>/dev/null | head -n1)
+
+  if [[ -z "$current" ]]; then
+    log SKIP "GRUB_CMDLINE_LINUX_DEFAULT not found"
+    return 0
+  fi
+
+  local new_cmdline
+  if ! new_cmdline=$(_clean_cmdline "$current"); then
+    LAST_ERROR="Failed to build new GRUB cmdline"
+    return 1
+  fi
+
+  if [[ "$new_cmdline" == "$current" ]]; then
+    log SKIP "GRUB cmdline already configured"
+    return 0
+  fi
+
+  if ! update_config "$GRUB_FILE" "GRUB_CMDLINE_LINUX_DEFAULT" "\"$new_cmdline\""; then
+    LAST_ERROR="Failed to update GRUB config: $LAST_ERROR"
+    return 1
+  fi
+
+  local mkconfig
+  if command_exists grub-mkconfig; then
+    mkconfig="grub-mkconfig"
+    sudo "$mkconfig" -o /boot/grub/grub.cfg >/dev/null 2>&1 || true
+  elif command_exists grub2-mkconfig; then
+    mkconfig="grub2-mkconfig"
+    sudo "$mkconfig" -o /boot/grub2/grub.cfg >/dev/null 2>&1 || true
+  fi
+
+  log INFO "Updated GRUB cmdline (removed splash, added plymouth.enable=0)"
+  return 0
+}
+
+# Updates Limine kernel cmdline drop-in to add plymouth.enable=0.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success, 1 on failure
+_update_limine_cmdline() {
+  LAST_ERROR=""
+
+  if [[ ! -d "$LIMINE_DROPIN_DIR" ]]; then
+    log SKIP "Limine drop-in directory not found"
+    return 0
+  fi
+
+  if ! update_limine_cmdline "50-disable-plymouth" --append "plymouth.enable=0" 2>/dev/null; then
+    LAST_ERROR="Failed to update Limine cmdline: $LAST_ERROR"
+    return 1
+  fi
+
+  log INFO "Added plymouth.enable=0 to Limine cmdline"
+  return 0
+}
+
+# Updates systemd-boot kernel cmdline file.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success, 1 on failure
+_update_systemd_boot_cmdline() {
+  LAST_ERROR=""
+
+  if [[ ! -f "$SYSTEMD_CMDLINE_FILE" ]]; then
+    return 0
+  fi
+
+  local current
+  current=$(cat "$SYSTEMD_CMDLINE_FILE" 2>/dev/null) || return 0
+
+  local new_cmdline
+  if ! new_cmdline=$(_clean_cmdline "$current"); then
+    LAST_ERROR="Failed to build new systemd-boot cmdline"
+    return 1
+  fi
+
+  if [[ "$new_cmdline" == "$current" ]]; then
+    log SKIP "systemd-boot cmdline already configured"
+    return 0
+  fi
+
+  if ! printf '%s' "$new_cmdline" | sudo tee "$SYSTEMD_CMDLINE_FILE" >/dev/null 2>&1; then
+    LAST_ERROR="Failed to write $SYSTEMD_CMDLINE_FILE"
+    return 1
+  fi
+
+  log INFO "Updated systemd-boot cmdline (removed splash, added plymouth.enable=0)"
+  return 0
+}
+
+# Detects and updates kernel cmdline across all supported bootloaders.
+#
+# Handles GRUB, Limine, and systemd-boot. Each method is tried
+# independently so all configured bootloaders get updated.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 always (individual failures are logged as warnings)
+_update_all_bootloader_cmdlines() {
+  LAST_ERROR=""
+
+  _update_grub_cmdline || log WARN "GRUB cmdline update: $LAST_ERROR"
+  LAST_ERROR=""
+  _update_limine_cmdline || log WARN "Limine cmdline update: $LAST_ERROR"
+  LAST_ERROR=""
+  _update_systemd_boot_cmdline || log WARN "systemd-boot cmdline update: $LAST_ERROR"
+
+  return 0
+}
+
 main() {
   if ! keep_sudo_alive; then
     die "Failed to keep sudo alive"
   fi
 
   if ! _plymouth_installed; then
-    log SKIP "Plymouth is not installed"
+    log SKIP "Plymouth package is not installed"
     exit 0
   fi
 
-  if ! _plymouth_services_enabled; then
-    log SKIP "No Plymouth systemd services found"
+  if ! _plymouth_is_active; then
+    log SKIP "Plymouth does not appear to be active"
     exit 0
   fi
 
   print_box "Disable Plymouth"
   log STEP "Disabling Plymouth"
 
-  if ! _disable_plymouth_services; then
-    die "Failed to disable Plymouth services: $LAST_ERROR"
-  fi
+  _disable_plymouth_services
 
   if ! _remove_plymouth_from_mkinitcpio; then
     die "Failed to remove Plymouth from mkinitcpio: $LAST_ERROR"
   fi
+
+  log STEP "Updating bootloader kernel cmdline"
+  _update_all_bootloader_cmdlines
 
   log INFO "Regenerating initramfs..."
   if ! regenerate_initramfs; then
