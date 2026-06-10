@@ -104,17 +104,11 @@ wallpaper_scheme = "faithful"
     community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi" ]
 
 [wallpaper]
-directory = "/home/noeltz/Pictures/Wallpapers"
+directory = "~Pictures/Wallpapers"
 transition = [ "fade" ]
 
     [wallpaper.default]
-    path = "/home/noeltz/Pictures/Wallpapers/wallhaven_zpz1ow.jpg"
-
-    [wallpaper.last]
-    path = "/home/noeltz/Pictures/Wallpapers/wallhaven_zpz1ow.jpg"
-
-    [wallpaper.monitors.Virtual-1]
-    path = "/home/noeltz/Pictures/Wallpapers/wallhaven_zpz1ow.jpg"
+    path = "~/Wallpaper/default-bg.png"
 
 [weather]
 address = "Bühl, Germany"
