@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+# run_once_after_03-disable-plymouth.sh - Disable Plymouth splash screen
+#
+# Checks if Plymouth is active and disables all systemd services and removes
+# the plymouth hook from mkinitcpio. Ensures clean boot without graphical
+# splash for systems that ship with Plymouth pre-enabled.
+#
+# Globals:
+#   LAST_ERROR - Error message from last failed operation
+# Exit codes:
+#   0 (success), 1 (failure)
+
+{{ template "run_onchange_hash" . }}
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-snapboot.sh"
+
+readonly PLYMOUTH_PACKAGE="plymouth"
+readonly MKINITCPIO_CONF="/etc/mkinitcpio.conf"
+
+# Checks if Plymouth package is installed.
+#
+# Returns:
+#   0 if installed, 1 otherwise
+_plymouth_installed() {
+  pacman -Qi "$PLYMOUTH_PACKAGE" >/dev/null 2>&1
+}
+
+# Checks if any Plymouth systemd services are enabled.
+#
+# Returns:
+#   0 if any plymouth-* services are present, 1 otherwise
+_plymouth_services_enabled() {
+  systemctl list-unit-files 2>/dev/null | grep -q '^plymouth-'
+}
+
+# Disables, stops, and masks all plymouth-* systemd services.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success, 1 on failure
+_disable_plymouth_services() {
+  LAST_ERROR=""
+
+  local services
+  services=$(systemctl list-unit-files 2>/dev/null | awk '/^plymouth-/ {print $1}') || true
+
+  if [[ -z "${services:-}" ]]; then
+    return 0
+  fi
+
+  local svc
+  for svc in $services; do
+    if systemctl is-enabled "$svc" >/dev/null 2>&1; then
+      if ! sudo systemctl disable "$svc" >/dev/null 2>&1; then
+        log WARN "Failed to disable $svc"
+      else
+        log INFO "Disabled ${COLOR_CYAN}$svc${COLOR_RESET}"
+      fi
+    fi
+
+    if systemctl is-active "$svc" >/dev/null 2>&1; then
+      sudo systemctl stop "$svc" >/dev/null 2>&1 || true
+    fi
+
+    if ! sudo systemctl mask "$svc" >/dev/null 2>&1; then
+      LAST_ERROR="Failed to mask $svc"
+      return 1
+    fi
+
+    log INFO "Masked ${COLOR_CYAN}$svc${COLOR_RESET}"
+  done
+
+  return 0
+}
+
+# Removes plymouth hook from mkinitcpio.conf.
+#
+# Strips 'plymouth' from the HOOKS array while preserving order
+# and spacing style of existing hooks.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success (removed or not present), 1 on failure
+_remove_plymouth_from_mkinitcpio() {
+  LAST_ERROR=""
+
+  if [[ ! -f "$MKINITCPIO_CONF" ]]; then
+    return 0
+  fi
+
+  local current_hooks
+  current_hooks=$(sed -nE 's/^[[:space:]]*HOOKS=\((.*)\)[[:space:]]*$/\1/p' "$MKINITCPIO_CONF" 2>/dev/null | head -n1)
+
+  if [[ -z "$current_hooks" ]]; then
+    return 0
+  fi
+
+  if [[ " $current_hooks " != *" plymouth "* ]]; then
+    log SKIP "plymouth hook not present in mkinitcpio"
+    return 0
+  fi
+
+  local new_hooks
+  new_hooks=$(printf '%s' "$current_hooks" | sed 's/\bplymouth\b//g' | tr -s ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+  if ! sudo sed -i -E "s|^[[:space:]]*HOOKS=\(.*\)|HOOKS=($new_hooks)|" "$MKINITCPIO_CONF" 2>/dev/null; then
+    LAST_ERROR="Failed to update $MKINITCPIO_CONF"
+    return 1
+  fi
+
+  log INFO "Removed plymouth hook from mkinitcpio"
+  return 0
+}
+
+main() {
+  if ! keep_sudo_alive; then
+    die "Failed to keep sudo alive"
+  fi
+
+  if ! _plymouth_installed; then
+    log SKIP "Plymouth is not installed"
+    exit 0
+  fi
+
+  if ! _plymouth_services_enabled; then
+    log SKIP "No Plymouth systemd services found"
+    exit 0
+  fi
+
+  print_box "Disable Plymouth"
+  log STEP "Disabling Plymouth"
+
+  if ! _disable_plymouth_services; then
+    die "Failed to disable Plymouth services: $LAST_ERROR"
+  fi
+
+  if ! _remove_plymouth_from_mkinitcpio; then
+    die "Failed to remove Plymouth from mkinitcpio: $LAST_ERROR"
+  fi
+
+  log INFO "Regenerating initramfs..."
+  if ! regenerate_initramfs; then
+    log WARN "Failed to regenerate initramfs: $LAST_ERROR"
+  fi
+
+  log INFO "Plymouth disabled successfully"
+}
+
+main "$@"
