@@ -44,9 +44,8 @@ configure_greetd() {
 vt = 1
 
 [default_session]
-# tuigreet remembers the last user and launches niri-session
-command = "tuigreet --time --remember --cmd niri-session"
-user = "${USER}"
+command = "/usr/bin/noctalia-greeter-session -- --session niri"
+user = "greeter"
 EOF
 
   log INFO "Configured greetd display manager"
