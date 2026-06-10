@@ -10,7 +10,7 @@ Chezmoi-managed dotfiles for Arch Linux with Niri Wayland compositor and Noctali
 
 ```bash
 # One-liner — installs chezmoi, clones repo, and applies dotfiles
-sh -c "$(curl -fsLS https://get.chezmoi.io)" -- init --apply noeltz
+sh -c "$(curl -fsLS https://get.chezmoi.io)" -- init --apply https://github.com/noeltz/n0_dots.git
 ```
 
 Or step by step:
@@ -20,7 +20,7 @@ Or step by step:
 sudo pacman -S chezmoi
 
 # Clone and apply
-chezmoi init --apply noeltz
+chezmoi init --apply https://github.com/noeltz/n0_dots.git
 ```
 
 On first init you will be prompted to choose an AUR helper (paru or yay).
