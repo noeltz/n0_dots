@@ -1,10 +1,5 @@
-<p align="center">
-  <strong style="font-size: 2.5em; font-family: system-ui, -apple-system, sans-serif; letter-spacing: -1px;">
-    n<span style="display: inline-block; background: linear-gradient(135deg, #7C3AED, #A78BFA); color: white; padding: 0 8px; border-radius: 6px; font-weight: 900;">0_d</span>ots
-  </strong>
-  <br>
-  <span style="color: #6B7280; font-size: 0.85em;">chezmoi · arch · niri · noctalia · zsh</span>
-</p>
+<h1 align="center">n<kbd>0_d</kbd>ots</h1>
+<p align="center"><i>chezmoi · arch · niri · noctalia · zsh</i></p>
 
 ![Niri](https://img.shields.io/badge/Wayland-Niri-0078D7?logo=linux&logoColor=white)
 ![Shell](https://img.shields.io/badge/Shell-Zsh-81A1C1?logo=gnu-bash&logoColor=white)
