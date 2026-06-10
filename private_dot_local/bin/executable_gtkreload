@@ -23,4 +23,10 @@ sleep 0.3
 # Restore (Reload with New Colors)
 /usr/share/noctalia/assets/templates/gtk/apply.sh $MODE
 
+# Refresh Icon Theme
+ICONS=$(gsettings get org.gnome.desktop.interface icon-theme)
+gsettings set org.gnome.desktop.interface icon-theme "hicolor"
+sleep 0.1
+gsettings set org.gnome.desktop.interface icon-theme "$ICONS"
+
 echo "Done."
