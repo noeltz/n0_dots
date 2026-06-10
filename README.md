@@ -23,8 +23,6 @@ sudo pacman -S chezmoi
 chezmoi init --apply https://github.com/noeltz/n0_dots.git
 ```
 
-On first init you will be prompted to choose an AUR helper (paru or yay).
-
 ## Daily Operations
 
 ```bash
@@ -57,17 +55,6 @@ chezmoi merge ~/.config/niri/config.kdl
 
 # Forget a file (stop managing it locally)
 chezmoi forget ~/.local/bin/old-script.sh
-```
-
-## Template Variables
-
-On `chezmoi init` you will be prompted to select an AUR helper:
-
-```
-Which AUR helper would you like to use:
-1. paru
-2. yay
-[Default: paru]
 ```
 
 ## License
