@@ -399,11 +399,6 @@ main() {
     exit 0
   fi
 
-  if ! _plymouth_is_active; then
-    log SKIP "Plymouth does not appear to be active"
-    exit 0
-  fi
-
   print_box "Disable Plymouth"
   log STEP "Disabling Plymouth"
 
