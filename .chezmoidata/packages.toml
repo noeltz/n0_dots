@@ -27,6 +27,7 @@ pacman = [
   "figlet",
   "fish",
   "flatpak",
+  "frameworkintegration",
   "fzf",
   "git",
   "github-cli",
