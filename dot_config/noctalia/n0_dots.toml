@@ -108,6 +108,9 @@ transition = [ "fade" ]
 
     [wallpaper.default]
     path = "%HOME/Pictures/Wallpaper/default-bg.png"
+    
+    [wallpaper.last]
+    path = "%HOME/Pictures/Wallpaper/default-bg.png"
 
 [weather]
 address = "Bühl, Germany"
