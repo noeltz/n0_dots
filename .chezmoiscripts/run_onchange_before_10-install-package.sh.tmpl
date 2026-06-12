@@ -31,6 +31,12 @@ main() {
   log STEP "Syncing package databases"
   paru -Sy --noconfirm
 
+  # Resolve conflicts that block automatic replacements
+  if pacman -Qi jack2 &>/dev/null; then
+    log INFO "Removing jack2 for replacement by pipewire-jack"
+    sudo pacman -Rdd --noconfirm jack2
+  fi
+
   log STEP "Installing packages..."
   paru -S --needed --noconfirm "${packages[@]}" || log WARN "Package installation failed."
 }
