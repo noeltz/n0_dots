@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# run_once_before_00-install-aur-helper.sh - Install AUR helper and configure Chaotic-AUR
-
-# Installs the configured AUR helper (paru/yay) and sets up Chaotic-AUR
-# repository for Arch Linux. Skips if already configured.
+# run_once_before_00-install-aur-helper.sh - Install paru AUR helper and configure Chaotic-AUR
+#
+# Installs paru (AUR helper) and sets up Chaotic-AUR repository.
+# Skipped if both are already configured.
 # Exit codes: 0 (success), 1 (failure)
 
 set -euo pipefail
@@ -11,6 +11,8 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
+
+AUR_HELPER="paru"
 
 log STEP "Setting up AUR helper and Chaotic-AUR"
 
@@ -31,16 +33,20 @@ else
 fi
 
 # --- AUR Helper ---
-if ! command -v {{ .chezmoi.config.data.aurHelper }} &>/dev/null; then
-  if confirm "{{ .chezmoi.config.data.aurHelper }} is not installed. Install it?"; then
-    log STEP "Installing {{ .chezmoi.config.data.aurHelper -}}"
-    sudo pacman -S --needed base-devel
-    git clone https://aur.archlinux.org/{{- .chezmoi.config.data.aurHelper -}}-bin.git /tmp/aur-helper
-    (
-      cd /tmp/aur-helper/ || exit 1
-      makepkg -si
-    )
-  fi
+if command -v "$AUR_HELPER" &>/dev/null; then
+  log SKIP "$AUR_HELPER is already installed"
+  exit 0
+fi
+
+log STEP "Installing $AUR_HELPER"
+sudo pacman -S --needed base-devel
+
+# Try installing from Chaotic-AUR first (faster), fall back to git+make
+if sudo pacman -S --noconfirm "$AUR_HELPER" 2>/dev/null; then
+  log INFO "$AUR_HELPER installed from Chaotic-AUR"
 else
-  log SKIP "{{ .chezmoi.config.data.aurHelper }} is installed"
+  log INFO "Building $AUR_HELPER from AUR source..."
+  git clone "https://aur.archlinux.org/${AUR_HELPER}-bin.git" /tmp/aur-helper
+  (cd /tmp/aur-helper && makepkg -si --noconfirm)
+  log INFO "$AUR_HELPER installed from AUR source"
 fi
