@@ -1,5 +1,5 @@
 [backdrop]
-enabled = true
+enabled = false
 
 [bar.default]
 border = "primary"
@@ -103,11 +103,11 @@ wallpaper_scheme = "faithful"
     community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi" ]
 
 [wallpaper]
-directory = "~/Pictures/Wallpaper"
+directory = "$HOME/Pictures/Wallpaper"
 transition = [ "fade" ]
 
     [wallpaper.default]
-    path = "~~/Pictures/Wallpaper/default-bg.png"
+    path = "%HOME/Pictures/Wallpaper/default-bg.png"
 
 [weather]
 address = "Bühl, Germany"
