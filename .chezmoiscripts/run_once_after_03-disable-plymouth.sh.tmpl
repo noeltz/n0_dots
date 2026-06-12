@@ -27,6 +27,7 @@ readonly PLYMOUTH_PACKAGE="plymouth"
 readonly MKINITCPIO_CONF="/etc/mkinitcpio.conf"
 readonly GRUB_FILE="/etc/default/grub"
 readonly LIMINE_DROPIN_DIR="/etc/limine-entry-tool.d"
+readonly LIMINE_DEFAULT_CONF="/etc/default/limine"
 readonly SYSTEMD_CMDLINE_FILE="/etc/kernel/cmdline"
 readonly SDMANAGE_CONF="/etc/sdboot-manage.conf"
 
@@ -258,7 +259,10 @@ _update_grub_cmdline() {
   return 0
 }
 
-# Updates Limine kernel cmdline drop-in to add plymouth.enable=0.
+# Updates Limine kernel cmdline to add plymouth.enable=0 disablehooks=plymouth.
+#
+# Tries /etc/limine-entry-tool.d/ drop-in first, then falls back to
+# /etc/default/limine for setups that don't use the entry-tool hook.
 #
 # Globals:
 #   LAST_ERROR - Set on failure
@@ -267,17 +271,39 @@ _update_grub_cmdline() {
 _update_limine_cmdline() {
   LAST_ERROR=""
 
-  if [[ ! -d "$LIMINE_DROPIN_DIR" ]]; then
-    log SKIP "Limine drop-in directory not found"
+  if [[ -d "$LIMINE_DROPIN_DIR" ]]; then
+    if ! update_limine_cmdline "50-disable-plymouth" --append "plymouth.enable=0 disablehooks=plymouth" 2>/dev/null; then
+      LAST_ERROR="Failed to update Limine cmdline: $LAST_ERROR"
+      return 1
+    fi
+    log INFO "Added plymouth.enable=0 disablehooks=plymouth to Limine cmdline"
     return 0
   fi
 
-  if ! update_limine_cmdline "50-disable-plymouth" --append "plymouth.enable=0 disablehooks=plymouth" 2>/dev/null; then
-    LAST_ERROR="Failed to update Limine cmdline: $LAST_ERROR"
-    return 1
+  if [[ -f "$LIMINE_DEFAULT_CONF" ]]; then
+    local line='KERNEL_CMDLINE[default]+="plymouth.enable=0 disablehooks=plymouth"'
+
+    if grep -qE 'KERNEL_CMDLINE\[default\]\+=' "$LIMINE_DEFAULT_CONF" 2>/dev/null; then
+      if grep -q 'disablehooks=plymouth' "$LIMINE_DEFAULT_CONF" 2>/dev/null; then
+        log SKIP "Limine cmdline already configured"
+        return 0
+      fi
+      if ! sudo sed -i 's/KERNEL_CMDLINE\[default\]+="\(.*\)"/KERNEL_CMDLINE[default]+="\1 plymouth.enable=0 disablehooks=plymouth"/' "$LIMINE_DEFAULT_CONF" 2>/dev/null; then
+        LAST_ERROR="Failed to update $LIMINE_DEFAULT_CONF"
+        return 1
+      fi
+    else
+      if ! printf '%s\n' "$line" | sudo tee -a "$LIMINE_DEFAULT_CONF" >/dev/null 2>&1; then
+        LAST_ERROR="Failed to write to $LIMINE_DEFAULT_CONF"
+        return 1
+      fi
+    fi
+
+    log INFO "Added plymouth.enable=0 disablehooks=plymouth to $LIMINE_DEFAULT_CONF"
+    return 0
   fi
 
-  log INFO "Added plymouth.enable=0 to Limine cmdline"
+  log SKIP "No Limine config found ($LIMINE_DROPIN_DIR or $LIMINE_DEFAULT_CONF)"
   return 0
 }
 
