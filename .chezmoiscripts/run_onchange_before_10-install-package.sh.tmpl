@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 # run_onchange_before_10-install-package.sh - Install packages via AUR helper
-
-# Installs system and AUR packages using the configured AUR helper.
+#
+# Installs system and AUR packages using paru.
 # Reads package lists from .chezmoidata/packages.toml.
+# Skips already-installed packages. Runs unattended (--noconfirm).
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . -}}
+
+set -euo pipefail
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
 
 packages=()
 aur_packages=()
@@ -18,13 +26,19 @@ packages+=({{- . | quote -}})
 aur_packages+=({{- . | quote -}})
 {{ end }}
 
-log_step() { printf '%b\n' "$1" >&2; }
-die() { log_step "$1"; exit 1; }
+if ! command -v paru &>/dev/null; then
+  die "paru is not installed. run_once_before_00-install-aur-helper must run first."
+fi
 
-command -v paru >/dev/null 2>&1 || die "paru is not installed. Run_once_before_00-install-aur-helper must run first."
+log STEP "Syncing package databases"
+paru -Sy --noconfirm
 
-log_step "> Installing base packages..."
-paru -S --needed "${packages[@]}" || log_step "WARNING: Package installation failed."
+if [[ ${#packages[@]} -gt 0 ]]; then
+  log STEP "Installing pacman packages..."
+  paru -S --needed --noconfirm "${packages[@]}" || log WARN "Package installation failed."
+fi
 
-log_step "> Installing AUR packages..."
-paru -S --needed "${aur_packages[@]}" || log_step "WARNING: AUR package installation failed."
+if [[ ${#aur_packages[@]} -gt 0 ]]; then
+  log STEP "Installing AUR packages..."
+  paru -S --needed --noconfirm "${aur_packages[@]}" || log WARN "AUR package installation failed."
+fi
