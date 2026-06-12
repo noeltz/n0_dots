@@ -108,10 +108,10 @@ directory = "~/Pictures/Wallpaper"
 transition = [ "fade" ]
 
     [wallpaper.default]
-    path = "~/Pictures/Wallpaper/default-bg.png"
-    
+    path = "~/Pictures/Wallpaper/default-bg.jpg"
+
     [wallpaper.last]
-    path = "~/Pictures/Wallpaper/default-bg.png"
+    path = "~/Pictures/Wallpaper/default-bg.jpg"
 
 [weather]
 address = "Bühl, Germany"
