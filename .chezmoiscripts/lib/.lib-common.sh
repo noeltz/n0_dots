@@ -96,7 +96,7 @@ die() {
   exit "$exit_code"
 }
 
-# Displays text in figlet banner.
+# Displays text in figlet banner (or unicode box if figlet not installed).
 #
 # Arguments:
 #   $1 - Text to display
@@ -107,7 +107,13 @@ print_box() {
   local text="${1:-}"
   local font="${2:-smslant}"
 
-  figlet -f "$font" "$text"
+  if command -v figlet &>/dev/null; then
+    figlet -f "$font" "$text"
+  else
+    local line
+    line=$(printf '%*s' "${#text}" '' | tr ' ' '─')
+    printf '┌─%s─┐\n│ %s │\n└─%s─┘\n' "$line" "$text" "$line"
+  fi
 }
 
 # Prompts user for yes/no confirmation.
