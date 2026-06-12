@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# 04_login_manager.sh - Configure greetd display manager
+# run_once_after_04_login_manager.sh - Configure greetd display manager
+#
+# Disables conflicting display managers and enables greetd with tuigreet.
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . }}

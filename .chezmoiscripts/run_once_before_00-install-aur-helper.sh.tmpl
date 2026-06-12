@@ -2,60 +2,68 @@
 # run_once_before_00-install-aur-helper.sh - Install paru AUR helper and configure Chaotic-AUR
 #
 # Installs paru (AUR helper) and sets up Chaotic-AUR repository.
-# Skipped if both are already configured.
+# Skipped if both are already configured. Runs unattended (--noconfirm).
 # Exit codes: 0 (success), 1 (failure)
 
 set -euo pipefail
+shopt -s nullglob globstar
 
 readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
 
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
-AUR_HELPER="paru"
+readonly AUR_HELPER="paru"
 
-log STEP "Setting up AUR helper and Chaotic-AUR"
+main() {
+  if ! keep_sudo_alive; then
+    die "Failed to keep sudo alive"
+  fi
 
-# --- Update Arch Linux Keyrings ---
-log INFO "Updating Arch Linux keyrings..."
-sudo pacman -Sy --noconfirm archlinux-keyring
-log INFO "Keyrings updated."
+  print_box "AUR Helper & Chaotic AUR"
 
-# --- Chaotic AUR ---
-if ! grep -q '^\[chaotic-aur\]' /etc/pacman.conf; then
-  log INFO "Setting up Chaotic AUR..."
-  sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
-  sudo pacman-key --lsign-key 3056513887B78AEB
-  sudo pacman -U --noconfirm --needed \
-    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
-    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
-  printf '\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist\n' \
-    | sudo tee -a /etc/pacman.conf >/dev/null
-  sudo pacman -Sy --noconfirm
-  log INFO "Chaotic AUR added."
-else
-  log SKIP "Chaotic AUR already configured"
-fi
+  # --- Update Arch Linux Keyrings ---
+  log STEP "Updating Arch Linux keyrings"
+  sudo pacman -Sy --noconfirm archlinux-keyring
 
-# --- AUR Helper ---
-if command -v "$AUR_HELPER" &>/dev/null; then
-  log SKIP "$AUR_HELPER is already installed"
-  exit 0
-fi
+  # --- Chaotic AUR ---
+  if ! grep -q '^\[chaotic-aur\]' /etc/pacman.conf; then
+    log STEP "Setting up Chaotic AUR"
+    sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
+    sudo pacman-key --lsign-key 3056513887B78AEB
+    sudo pacman -U --noconfirm --needed \
+      'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
+      'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+    printf '\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist\n' \
+      | sudo tee -a /etc/pacman.conf >/dev/null
+    sudo pacman -Sy --noconfirm
+    log INFO "Chaotic AUR added."
+  else
+    log SKIP "Chaotic AUR already configured"
+  fi
 
-log STEP "Installing $AUR_HELPER"
-sudo pacman -S --needed base-devel
+  # --- AUR Helper ---
+  if command -v "$AUR_HELPER" &>/dev/null; then
+    log SKIP "$AUR_HELPER is already installed"
+    exit 0
+  fi
 
-# Try installing from Chaotic-AUR first (faster), fall back to git+make
-if sudo pacman -S --noconfirm "$AUR_HELPER" 2>/dev/null; then
-  log INFO "$AUR_HELPER installed from Chaotic-AUR"
-else
-  log INFO "Building $AUR_HELPER from AUR source..."
-  git clone "https://aur.archlinux.org/${AUR_HELPER}-bin.git" /tmp/aur-helper
-  (cd /tmp/aur-helper && makepkg -si --noconfirm)
-  log INFO "$AUR_HELPER installed from AUR source"
-fi
+  log STEP "Installing $AUR_HELPER"
+  sudo pacman -S --needed base-devel
 
-log INFO "Running full system update with $AUR_HELPER..."
-"$AUR_HELPER" -Syu --noconfirm
-log INFO "System update complete."
+  # Try installing from Chaotic-AUR first (faster), fall back to git+make
+  if sudo pacman -S --noconfirm "$AUR_HELPER" 2>/dev/null; then
+    log INFO "$AUR_HELPER installed from Chaotic-AUR"
+  else
+    log INFO "Building $AUR_HELPER from AUR source..."
+    git clone "https://aur.archlinux.org/${AUR_HELPER}-bin.git" /tmp/aur-helper
+    (cd /tmp/aur-helper && makepkg -si --noconfirm)
+    log INFO "$AUR_HELPER installed from AUR source"
+  fi
+
+  log STEP "Running full system update"
+  "$AUR_HELPER" -Syu --noconfirm
+  log INFO "System update complete."
+}
+
+main "$@"

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# run_onchange_before_10-install-package.sh - Install packages via AUR helper
+# run_onchange_before_10-install-package.sh - Install packages via paru
 #
-# Installs system and AUR packages using paru.
-# Reads package lists from .chezmoidata/packages.toml.
+# Installs packages from .chezmoidata/packages.toml.
 # Skips already-installed packages. Runs unattended (--noconfirm).
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . -}}
 
 set -euo pipefail
+shopt -s nullglob globstar
 
 readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
 
@@ -21,12 +21,18 @@ packages=()
 packages+=({{- . | quote -}})
 {{ end }}
 
-if ! command -v paru &>/dev/null; then
-  die "paru is not installed. run_once_before_00-install-aur-helper must run first."
-fi
+main() {
+  if ! command -v paru &>/dev/null; then
+    die "paru is not installed. run_once_before_00-install-aur-helper must run first."
+  fi
 
-log STEP "Syncing package databases"
-paru -Sy --noconfirm
+  print_box "Packages"
 
-log STEP "Installing packages..."
-paru -S --needed --noconfirm "${packages[@]}" || log WARN "Package installation failed."
+  log STEP "Syncing package databases"
+  paru -Sy --noconfirm
+
+  log STEP "Installing packages..."
+  paru -S --needed --noconfirm "${packages[@]}" || log WARN "Package installation failed."
+}
+
+main "$@"

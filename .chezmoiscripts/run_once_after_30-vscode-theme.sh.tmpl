@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # run_once_after_30-vscode-theme.sh - Install VSCode matugen theme extension
-
-# Installs the matugen-vscode extension for dynamic theming.
+#
+# Installs the matugen-vscode extension for dynamic theming from local .vsix.
 # Exit codes: 0 (success), 1 (failure)
 
 set -euo pipefail
+shopt -s nullglob globstar
 
 readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
 
@@ -13,5 +14,10 @@ source "$LIB_DIR/.lib-common.sh"
 
 readonly PKG_DIR="{{- .chezmoi.sourceDir -}}/assets/install"
 
-log STEP "Installing VSCode matugen theme"
-codium --install-extension "$PKG_DIR/matugen-vscode-1.1.0.vsix" && log INFO "Theme installed successfully"
+main() {
+  print_box "VSCode Theme"
+  log STEP "Installing VSCode matugen theme"
+  codium --install-extension "$PKG_DIR/matugen-vscode-1.1.0.vsix" && log INFO "Theme installed"
+}
+
+main "$@"

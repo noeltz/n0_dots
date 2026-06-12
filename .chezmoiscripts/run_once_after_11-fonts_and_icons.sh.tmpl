@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# run_once_after_11-fonts_and_icons.sh - Install custom fonts and icon theme
+#
+# Downloads Maple Mono Nerd Font, Tabler Icons, and installs Papirus icon theme.
+# Skips redownloading if already present.
+# Exit codes: 0 (success), 1 (failure)
 
+set -euo pipefail
 shopt -s nullglob globstar
 
 readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
@@ -8,60 +13,60 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
-# --- CONFIGURATION ---
-FONT_DIR="$HOME/.local/share/fonts"
-ZIP_URLS=(
+main() {
+  # --- Configuration ---
+  readonly FONT_DIR="$HOME/.local/share/fonts"
+  readonly ZIP_URLS=(
     https://github.com/noeltz/custom-maple-font/releases/latest/download/NFM_MapleMonoNormal-NF.zip
     https://github.com/noeltz/custom-maple-font/releases/latest/download/NFP_MapleMonoNormal-NF.zip
-)
-
-FONT_URLS=(
+  )
+  readonly FONT_URLS=(
     https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/fonts/tabler-icons.woff2
-)
+  )
+  readonly GITHUB_REPOS=(
+    # noeltz/custom-maple-font
+  )
+  # ---------------------
 
-GITHUB_REPOS=(
-    #noeltz/custom-maple-font
-)
-# ---------------------
+  print_box "Fonts & Icons"
 
-print_box "Fonts"
-log STEP "Installing Fonts..."
+  log STEP "Installing fonts"
+  mkdir -p "$FONT_DIR"
 
-mkdir -p "$FONT_DIR"
-TEMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TEMP_DIR"' EXIT
-cd "$TEMP_DIR"
+  local temp_dir
+  temp_dir=$(mktemp -d)
+  trap 'rm -rf "$temp_dir"' EXIT
+  cd "$temp_dir"
 
-ALL_ZIPS=("${ZIP_URLS[@]}")
+  local all_zips=("${ZIP_URLS[@]}")
 
-for repo in "${GITHUB_REPOS[@]}"; do
+  for repo in "${GITHUB_REPOS[@]}"; do
     while IFS= read -r url; do
-        [[ -n "$url" ]] && ALL_ZIPS+=("$url")
+      [[ -n "$url" ]] && all_zips+=("$url")
     done < <(curl -s "https://api.github.com/repos/${repo}/releases/latest" | jq -r '.assets[] | select(.name | endswith(".zip")) | .browser_download_url')
-done
+  done
 
-# Process ZIP files
-for url in "${ALL_ZIPS[@]}"; do
+  for url in "${all_zips[@]}"; do
     [[ -z "$url" ]] && continue
     log INFO "Downloading ZIP: $url"
     curl -L -s -O "$url"
-    zip_file=$(basename "$url")
-    unzip -q -o "$zip_file"
+    unzip -q -o "$(basename "$url")"
     find . -type f -iname "*.ttf" -exec cp {} "$FONT_DIR" \;
-done
+  done
 
-# Process direct Font files
-for url in "${FONT_URLS[@]}"; do
+  for url in "${FONT_URLS[@]}"; do
     [[ -z "$url" ]] && continue
-    log INFO "Downloading Font: $url"
+    log INFO "Downloading font: $url"
     curl -L -s -O "$url"
     cp "$(basename "$url")" "$FONT_DIR"
-done
+  done
 
-fc-cache -fv
-log INFO "Installed Fonts to $FONT_DIR"
+  fc-cache -fv
+  log INFO "Fonts installed to $FONT_DIR"
 
-print_box "Icons"
-log STEP "Installing Icons..."
-wget -qO- https://git.io/papirus-icon-theme-install | env DESTDIR="$HOME/.local/share/icons" sh
-log INFO "Installed Icons"
+  log STEP "Installing Papirus icon theme"
+  wget -qO- https://git.io/papirus-icon-theme-install | env DESTDIR="$HOME/.local/share/icons" sh
+  log INFO "Icons installed"
+}
+
+main "$@"

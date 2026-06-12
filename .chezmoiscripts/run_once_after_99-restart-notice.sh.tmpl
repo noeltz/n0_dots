@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
 # run_once_after_99-restart-notice.sh - Display restart notification
-
+#
 # Displays a notification after basic setup is complete.
 # Exit codes: 0 (success)
 
 set -euo pipefail
+shopt -s nullglob globstar
 
 readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
 
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
-log INFO "Basic setup completed..."
-log INFO "Restart your system to apply changes."
+main() {
+  print_box "Setup Complete"
+  log INFO "Basic setup completed"
+  log INFO "Restart your system to apply changes"
+}
+
+main "$@"

@@ -1,79 +1,91 @@
 #!/usr/bin/env bash
+# run_onchange_after_91-helium-browser.sh - Configure Helium browser
+#
+# Sets up Widevine DRM symlink, Chromium policy directory, and color scheme.
+# Idempotent — skips steps that are already configured correctly.
+# Exit codes: 0 (success), 1 (failure)
 
 set -euo pipefail
+shopt -s nullglob globstar
 
 readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
 
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
-if ! keep_sudo_alive; then
-  die "Failed to keep sudo alive"
-fi
-
-# --- Configuration ---
-WIDEVINE_SRC="/usr/lib/chromium/WidevineCdm"
-WIDEVINE_DEST="/opt/helium-browser-bin/WidevineCdm"
-WIDEVINE_DEST_DIR="$(dirname "$WIDEVINE_DEST")"
-
-POLICY_DIR="/etc/chromium/policies/managed"
-POLICY_LINK="$POLICY_DIR/theme.json"
-
-LOCAL_CONFIG_DIR="$HOME/.local/share/color-schemes"
-LOCAL_CONFIG_FILE="$LOCAL_CONFIG_DIR/chromium.json"
-
-# --- 1. Widevine Symlink ---
-log STEP "Checking Widevine DRM support..."
-if [[ -d "$WIDEVINE_SRC" && -d "$WIDEVINE_DEST_DIR" ]]; then
-  current_target=""
-  if [[ -L "$WIDEVINE_DEST" ]]; then
-    current_target=$(readlink "$WIDEVINE_DEST")
+main() {
+  if ! keep_sudo_alive; then
+    die "Failed to keep sudo alive"
   fi
 
-  if [[ "$current_target" != "$WIDEVINE_SRC" ]]; then
-    log INFO "Creating/updating WidevineCdm symlink..."
-    sudo ln -sfn "$WIDEVINE_SRC" "$WIDEVINE_DEST"
+  print_box "Helium Browser"
+
+  # --- Configuration ---
+  readonly WIDEVINE_SRC="/usr/lib/chromium/WidevineCdm"
+  readonly WIDEVINE_DEST="/opt/helium-browser-bin/WidevineCdm"
+  readonly WIDEVINE_DEST_DIR="$(dirname "$WIDEVINE_DEST")"
+
+  readonly POLICY_DIR="/etc/chromium/policies/managed"
+  readonly POLICY_LINK="$POLICY_DIR/theme.json"
+
+  readonly LOCAL_CONFIG_DIR="$HOME/.local/share/color-schemes"
+  readonly LOCAL_CONFIG_FILE="$LOCAL_CONFIG_DIR/chromium.json"
+
+  # --- 1. Widevine Symlink ---
+  log STEP "Checking Widevine DRM support"
+  if [[ -d "$WIDEVINE_SRC" && -d "$WIDEVINE_DEST_DIR" ]]; then
+    local current_target=""
+    if [[ -L "$WIDEVINE_DEST" ]]; then
+      current_target=$(readlink "$WIDEVINE_DEST")
+    fi
+
+    if [[ "$current_target" != "$WIDEVINE_SRC" ]]; then
+      log INFO "Creating/updating WidevineCdm symlink"
+      sudo ln -sfn "$WIDEVINE_SRC" "$WIDEVINE_DEST"
+    else
+      log SKIP "WidevineCdm symlink already correct"
+    fi
   else
-    log SKIP "WidevineCdm symlink already correct"
+    log SKIP "WidevineCdm or Helium browser directory missing; skipping DRM link"
   fi
-else
-  log SKIP "WidevineCdm or Helium browser directory missing; skipping DRM link"
-fi
 
-# --- 2. Chromium Policy Directory ---
-if [[ ! -d "$POLICY_DIR" ]]; then
-  log INFO "Creating Chromium policies directory..."
-  sudo mkdir -p "$POLICY_DIR"
-else
-  log SKIP "Chromium policies directory already exists"
-fi
+  # --- 2. Chromium Policy Directory ---
+  if [[ ! -d "$POLICY_DIR" ]]; then
+    log INFO "Creating Chromium policies directory"
+    sudo mkdir -p "$POLICY_DIR"
+  else
+    log SKIP "Chromium policies directory already exists"
+  fi
 
-# --- 3. Local Color Scheme Config ---
-if [[ ! -d "$LOCAL_CONFIG_DIR" ]]; then
-  log INFO "Creating local config directory..."
-  mkdir -p "$LOCAL_CONFIG_DIR"
-fi
+  # --- 3. Local Color Scheme Config ---
+  if [[ ! -d "$LOCAL_CONFIG_DIR" ]]; then
+    log INFO "Creating local config directory"
+    mkdir -p "$LOCAL_CONFIG_DIR"
+  fi
 
-if [[ ! -f "$LOCAL_CONFIG_FILE" ]]; then
-  log INFO "Creating local color scheme config..."
-  echo '{
+  if [[ ! -f "$LOCAL_CONFIG_FILE" ]]; then
+    log INFO "Creating local color scheme config"
+    echo '{
   "BrowserThemeColor": "#000000"
 }' > "$LOCAL_CONFIG_FILE"
-else
-  log SKIP "Local color scheme config already exists"
-fi
+  else
+    log SKIP "Local color scheme config already exists"
+  fi
 
-# --- 4. Policy Symlink ---
-current_policy_target=""
-if [[ -L "$POLICY_LINK" ]]; then
-  current_policy_target=$(readlink "$POLICY_LINK")
-fi
+  # --- 4. Policy Symlink ---
+  local current_policy_target=""
+  if [[ -L "$POLICY_LINK" ]]; then
+    current_policy_target=$(readlink "$POLICY_LINK")
+  fi
 
-if [[ "$current_policy_target" != "$LOCAL_CONFIG_FILE" ]]; then
-  log INFO "Creating/updating policy symlink..."
-  sudo ln -sfn "$LOCAL_CONFIG_FILE" "$POLICY_LINK"
-else
-  log SKIP "Policy symlink already correct"
-fi
+  if [[ "$current_policy_target" != "$LOCAL_CONFIG_FILE" ]]; then
+    log INFO "Creating/updating policy symlink"
+    sudo ln -sfn "$LOCAL_CONFIG_FILE" "$POLICY_LINK"
+  else
+    log SKIP "Policy symlink already correct"
+  fi
 
-log INFO "Helium browser configuration complete"
+  log INFO "Helium browser configuration complete"
+}
+
+main "$@"
