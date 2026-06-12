@@ -43,7 +43,7 @@ done
 # Process ZIP files
 for url in "${ALL_ZIPS[@]}"; do
     [[ -z "$url" ]] && continue
-    echo "Downloading ZIP: $url"
+    log INFO "Downloading ZIP: $url"
     curl -L -s -O "$url"
     zip_file=$(basename "$url")
     unzip -q -o "$zip_file"
@@ -53,7 +53,7 @@ done
 # Process direct Font files
 for url in "${FONT_URLS[@]}"; do
     [[ -z "$url" ]] && continue
-    echo "Downloading Font: $url"
+    log INFO "Downloading Font: $url"
     curl -L -s -O "$url"
     cp "$(basename "$url")" "$FONT_DIR"
 done

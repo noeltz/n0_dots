@@ -14,14 +14,13 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 source "$LIB_DIR/.lib-common.sh"
 
 main() {
-  if confirm "Add necessary systemd services?" "y"; then
-    log STEP "Adding necessary user services..."
-    systemctl --user daemon-reload
-    {{ range .services -}}
-    systemctl --user add-wants niri.service {{ . | quote }} && log INFO "Added {{ . }} service"
-    {{ end -}}
-    systemctl --user daemon-reload
-  fi
+  log STEP "Adding user services to niri.service..."
+
+  systemctl --user daemon-reload
+  {{ range .services -}}
+  systemctl --user add-wants niri.service {{ . | quote }} && log INFO "Added {{ . }} service"
+  {{ end -}}
+  systemctl --user daemon-reload
 }
 
 main "$@"

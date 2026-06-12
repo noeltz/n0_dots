@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# run_once_before_99-switch-shell.sh - Switch default shell to configured option
+# run_once_before_99-switch-shell.sh - Switch default shell to zsh
 
-# Switches the default shell to the configured shell (zsh) via chsh.
+# Switches the default shell to zsh via chsh.
+# Skipped if zsh is already the default shell.
 # Exit codes: 0 (success), 1 (failure)
 
 set -euo pipefail
@@ -11,7 +12,14 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
-if confirm "Switch shell to {{ .chezmoi.config.data.shell -}}?"; then
-  log STEP "Switching shell to {{ .chezmoi.config.data.shell -}}"
-  chsh -s "$(which {{ .chezmoi.config.data.shell -}})"
+readonly DESIRED_SHELL="zsh"
+readonly DESIRED_SHELL_PATH="$(which "$DESIRED_SHELL")"
+
+if [[ "$SHELL" == "$DESIRED_SHELL_PATH" ]]; then
+  log SKIP "$DESIRED_SHELL is already the default shell"
+  exit 0
 fi
+
+log STEP "Switching default shell to $DESIRED_SHELL"
+chsh -s "$DESIRED_SHELL_PATH"
+log INFO "Default shell switched to $DESIRED_SHELL"

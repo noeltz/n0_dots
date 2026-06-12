@@ -7,6 +7,10 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
+if ! keep_sudo_alive; then
+  die "Failed to keep sudo alive"
+fi
+
 # --- Configuration ---
 WIDEVINE_SRC="/usr/lib/chromium/WidevineCdm"
 WIDEVINE_DEST="/opt/helium-browser-bin/WidevineCdm"
