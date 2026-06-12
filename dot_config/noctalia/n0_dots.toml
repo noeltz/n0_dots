@@ -103,11 +103,11 @@ wallpaper_scheme = "faithful"
     community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi" ]
 
 [wallpaper]
-directory = "~/Pictures/Wallpapers"
+directory = "~/Pictures/Wallpaper"
 transition = [ "fade" ]
 
     [wallpaper.default]
-    path = "~~/Pictures/Wallpapers/default-bg.png"
+    path = "~~/Pictures/Wallpaper/default-bg.png"
 
 [weather]
 address = "Bühl, Germany"
