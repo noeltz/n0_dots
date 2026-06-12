@@ -1,6 +1,7 @@
 [backdrop]
 enabled = false
-​[bar.default]
+
+[bar.default]
 border = "primary"
 border_width = 2.0
 center = [ "date", "clock" ]
@@ -12,41 +13,51 @@ position = "left"
 radius = 6
 thickness = 36
 widget_spacing = 12
-​    [[bar.default.capsule_group]]
+
+    [[bar.default.capsule_group]]
     fill = "surface_variant"
     id = "g1"
     members = [ "notifications", "clipboard", "network", "bluetooth", "volume", "brightness", "battery" ]
     opacity = 1.0
     padding = 6.0
     radius = 6.0
-​[desktop_widgets]
+
+[desktop_widgets]
 enabled = false
-​[idle]
+
+[idle]
 behavior_order = [ "lock", "screen-off", "suspend" ]
-​    [idle.behavior.lock]
+
+    [idle.behavior.lock]
     action = "lock"
     enabled = true
     timeout = 600
-​    [idle.behavior.screen-off]
+
+    [idle.behavior.screen-off]
     action = "screen_off"
     enabled = false
     timeout = 660
-​    [idle.behavior.suspend]
+
+    [idle.behavior.suspend]
     action = "suspend"
     enabled = false
     lock_before_suspend = true
     timeout = 900
-​[location]
+
+[location]
 address = "Bühl, Germany"
-​[lockscreen_widgets]
+
+[lockscreen_widgets]
 enabled = true
 schema_version = 2
 widget_order = [ "lockscreen-login-box@Virtual-1", "lockscreen-widget-0000000000000001" ]
-​    [lockscreen_widgets.grid]
+
+    [lockscreen_widgets.grid]
     cell_size = 16
     major_interval = 4
     visible = true
-​    [lockscreen_widgets.widget."lockscreen-login-box@Virtual-1"]
+
+    [lockscreen_widgets.widget."lockscreen-login-box@Virtual-1"]
     box_height = 0.0
     box_width = 0.0
     cx = 960.0
@@ -54,7 +65,8 @@ widget_order = [ "lockscreen-login-box@Virtual-1", "lockscreen-widget-0000000000
     output = "Virtual-1"
     rotation = 0.0
     type = "login_box"
-​    [lockscreen_widgets.widget.lockscreen-widget-0000000000000001]
+
+    [lockscreen_widgets.widget.lockscreen-widget-0000000000000001]
     box_height = 272.0
     box_width = 528.0
     cx = 960.0
@@ -62,22 +74,28 @@ widget_order = [ "lockscreen-login-box@Virtual-1", "lockscreen-widget-0000000000
     output = "Virtual-1"
     rotation = 0.0
     type = "clock"
-​        [lockscreen_widgets.widget.lockscreen-widget-0000000000000001.settings]
+
+        [lockscreen_widgets.widget.lockscreen-widget-0000000000000001.settings]
         background = false
         color = "secondary"
-​[notification]
+
+[notification]
 position = "top_left"
-​[shell]
+
+[shell]
 font_family = "Maple Mono Normal NFMono"
 polkit_agent = true
 settings_show_advanced = true
-​    [shell.shadow]
+
+    [shell.shadow]
     direction = "center"
-​[theme]
+
+[theme]
 mode = "dark"
 source = "wallpaper"
 wallpaper_scheme = "faithful"
-​    [theme.templates]
+
+    [theme.templates]
     builtin_ids = [
         "alacritty",
         "btop",
@@ -94,40 +112,54 @@ wallpaper_scheme = "faithful"
         "wezterm"
     ]
     community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi" ]
-​[wallpaper]
+
+[wallpaper]
 directory = "~/Pictures/Wallpaper"
 transition = [ "fade" ]
-​    [wallpaper.default]
+
+    [wallpaper.default]
     path = "~/Pictures/Wallpaper/default-bg.jpg"
-​    [wallpaper.last]
+
+    [wallpaper.last]
     path = "~/Pictures/Wallpaper/default-bg.jpg"
-​    [wallpaper.monitors.Virtual-1]
+
+    [wallpaper.monitors.Virtual-1]
     path = "~/Pictures/Wallpaper/default-bg.jpg"
-​[weather]
+
+[weather]
 address = "Bühl, Germany"
-​[widget.clock]
+
+[widget.clock]
 color = "secondary"
 font_weight = 300
 scale = 1.1500000000000001
 vertical_format = "{:%H}\\n{:%M}"
-​[widget.control-center]
+
+[widget.control-center]
 color = "secondary"
 glyph = "settings"
-​[widget.date]
+
+[widget.date]
 color = "on_surface_variant"
 font_weight = 300
 scale = 1.1500000000000001
 vertical_format = "{:%d}\\n{:%m}"
-​[widget.media]
+
+[widget.media]
 hide_when_no_media = true
-​[widget.network]
+
+[widget.network]
 show_label = false
-​[widget.session]
+
+[widget.session]
 color = "tertiary"
-​[widget.tray]
+
+[widget.tray]
 hidden = [ "Network" ]
-​[widget.volume]
+
+[widget.volume]
 show_label = false
-​[widget.workspaces]
+
+[widget.workspaces]
 capsule = true
 capsule_radius = 4
