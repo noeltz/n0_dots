@@ -17,6 +17,10 @@ readonly DESIRED_SHELL="zsh"
 readonly DESIRED_SHELL_PATH="$(which "$DESIRED_SHELL")"
 
 main() {
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
+  fi
+
   if [[ "$SHELL" == "$DESIRED_SHELL_PATH" ]]; then
     log SKIP "$DESIRED_SHELL is already the default shell"
     return 0
