@@ -116,6 +116,7 @@ packages = [
   "xwayland-satellite",
   "yazi",
   "youtui-player",
+  "zed",
   "zoxide",
   "zsh",
 ]
