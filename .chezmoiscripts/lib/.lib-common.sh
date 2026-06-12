@@ -107,6 +107,10 @@ print_box() {
   local text="${1:-}"
   local font="${2:-smslant}"
 
+  if ! command -v figlet &>/dev/null; then
+    sudo pacman -S --noconfirm figlet 2>/dev/null || true
+  fi
+
   if command -v figlet &>/dev/null; then
     figlet -f "$font" "$text"
   else
