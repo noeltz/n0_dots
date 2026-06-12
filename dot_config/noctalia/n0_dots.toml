@@ -131,7 +131,7 @@ address = "Bühl, Germany"
 
 [widget.clock]
 color = "secondary"
-font_weight = 300
+font_weight = 400
 scale = 1.1500000000000001
 vertical_format = "{:%H}\\n{:%M}"
 
