@@ -62,7 +62,7 @@ main() {
   fi
 
   log STEP "Running full system update"
-  "$AUR_HELPER" -Syu --noconfirm
+  "$AUR_HELPER" -Syu --noconfirm --sudoloop
   log INFO "System update complete."
 }
 

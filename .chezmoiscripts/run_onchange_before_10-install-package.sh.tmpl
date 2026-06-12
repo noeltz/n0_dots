@@ -22,6 +22,10 @@ packages+=({{- . | quote -}})
 {{ end }}
 
 main() {
+  if ! keep_sudo_alive; then
+    die "Failed to keep sudo alive"
+  fi
+
   if ! command -v paru &>/dev/null; then
     die "paru is not installed. run_once_before_00-install-aur-helper must run first."
   fi
@@ -38,7 +42,7 @@ main() {
   fi
 
   log STEP "Installing packages..."
-  paru -S --needed --noconfirm "${packages[@]}" || log WARN "Package installation failed."
+  paru -S --needed --noconfirm --sudoloop "${packages[@]}" || log WARN "Package installation failed."
 }
 
 main "$@"
