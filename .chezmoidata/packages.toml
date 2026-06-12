@@ -55,7 +55,6 @@ packages = [
   "libnotify",
   "libpulse",
   "libqalculate",
-  "ly",
   "man-db",
   "man-pages",
   "matugen",
