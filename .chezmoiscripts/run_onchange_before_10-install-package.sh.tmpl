@@ -22,8 +22,8 @@ packages+=({{- . | quote -}})
 {{ end }}
 
 main() {
-  if ! keep_sudo_alive; then
-    die "Failed to keep sudo alive"
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
   fi
 
   if ! command -v paru &>/dev/null; then

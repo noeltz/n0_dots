@@ -244,6 +244,29 @@ is_laptop() {
   return 1
 }
 
+# Prompts for sudo with a styled banner and keeps it alive.
+#
+# Shows a clear header before prompting for the sudo password,
+# then starts the background keepalive loop. Should be called
+# at the start of any script that needs elevated privileges.
+# Uses a simple ASCII banner (no figlet) to avoid circular deps.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success, 1 on failure
+
+request_sudo() {
+  printf '\n'
+  printf '  ╭──────────────────────────────────────╮\n'
+  printf '  │  Sudo Authentication Required         │\n'
+  printf '  │  Password is needed for system setup  │\n'
+  printf '  ╰──────────────────────────────────────╯\n'
+  printf '\n'
+
+  keep_sudo_alive
+}
+
 # Keeps sudo session alive in background.
 #
 # Starts background process that refreshes sudo every 60 seconds.

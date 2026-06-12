@@ -16,8 +16,8 @@ source "$LIB_DIR/.lib-common.sh"
 readonly AUR_HELPER="paru"
 
 main() {
-  if ! keep_sudo_alive; then
-    die "Failed to keep sudo alive"
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
   fi
 
   print_box "AUR Helper & Chaotic AUR"
