@@ -16,14 +16,9 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 source "$LIB_DIR/.lib-common.sh"
 
 packages=()
-aur_packages=()
 
-{{ range .packages.arch.pacman }}
+{{ range .packages }}
 packages+=({{- . | quote -}})
-{{ end }}
-
-{{ range .packages.arch.aur }}
-aur_packages+=({{- . | quote -}})
 {{ end }}
 
 if ! command -v paru &>/dev/null; then
@@ -33,12 +28,5 @@ fi
 log STEP "Syncing package databases"
 paru -Sy --noconfirm
 
-if [[ ${#packages[@]} -gt 0 ]]; then
-  log STEP "Installing pacman packages..."
-  paru -S --needed --noconfirm "${packages[@]}" || log WARN "Package installation failed."
-fi
-
-if [[ ${#aur_packages[@]} -gt 0 ]]; then
-  log STEP "Installing AUR packages..."
-  paru -S --needed --noconfirm "${aur_packages[@]}" || log WARN "AUR package installation failed."
-fi
+log STEP "Installing packages..."
+paru -S --needed --noconfirm "${packages[@]}" || log WARN "Package installation failed."
