@@ -16,6 +16,11 @@ AUR_HELPER="paru"
 
 log STEP "Setting up AUR helper and Chaotic-AUR"
 
+# --- Update Arch Linux Keyrings ---
+log INFO "Updating Arch Linux keyrings..."
+sudo pacman -Sy --noconfirm archlinux-keyring
+log INFO "Keyrings updated."
+
 # --- Chaotic AUR ---
 if ! grep -q '^\[chaotic-aur\]' /etc/pacman.conf; then
   log INFO "Setting up Chaotic AUR..."
@@ -50,3 +55,7 @@ else
   (cd /tmp/aur-helper && makepkg -si --noconfirm)
   log INFO "$AUR_HELPER installed from AUR source"
 fi
+
+log INFO "Running full system update with $AUR_HELPER..."
+"$AUR_HELPER" -Syu --noconfirm
+log INFO "System update complete."
