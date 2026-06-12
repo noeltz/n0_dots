@@ -585,14 +585,16 @@ regenerate_initramfs() {
     fi
 
     if [[ "$bootloader" = "limine" ]]; then
-      if ! command_exists limine-update; then
-        LAST_ERROR="limine-update command not found"
-        return 127
-      fi
-
-      if ! sudo limine-update >/dev/null 2>&1; then
-        LAST_ERROR="Failed to regenerate initramfs with limine-update"
-        return 1
+      if command_exists limine-update; then
+        if ! sudo limine-update >/dev/null 2>&1; then
+          LAST_ERROR="Failed to regenerate initramfs with limine-update"
+          return 1
+        fi
+      else
+        if ! sudo mkinitcpio -P >/dev/null 2>&1; then
+          LAST_ERROR="Failed to regenerate initramfs with mkinitcpio"
+          return 1
+        fi
       fi
     else
       if ! sudo mkinitcpio -P >/dev/null 2>&1; then

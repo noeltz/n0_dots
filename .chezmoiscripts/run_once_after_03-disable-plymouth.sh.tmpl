@@ -203,8 +203,8 @@ _clean_cmdline() {
   # Remove 'splash' and 'quiet' parameters
   cleaned=$(printf '%s' "$current" | sed 's/\bsplash\b//g; s/\bquiet\b//g' | tr -s ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
-  # Add plymouth.enable=0 using build_cmdline (handles dedup)
-  build_cmdline "$cleaned" "plymouth.enable=0"
+  # Add plymouth.enable=0 disablehooks=plymouth using build_cmdline (handles dedup)
+  build_cmdline "$cleaned" "plymouth.enable=0 disablehooks=plymouth"
 }
 
 # Updates GRUB kernel cmdline to remove splash and add plymouth.enable=0.
@@ -272,7 +272,7 @@ _update_limine_cmdline() {
     return 0
   fi
 
-  if ! update_limine_cmdline "50-disable-plymouth" --append "plymouth.enable=0" 2>/dev/null; then
+  if ! update_limine_cmdline "50-disable-plymouth" --append "plymouth.enable=0 disablehooks=plymouth" 2>/dev/null; then
     LAST_ERROR="Failed to update Limine cmdline: $LAST_ERROR"
     return 1
   fi
@@ -413,7 +413,7 @@ main() {
 
   log INFO "Regenerating initramfs..."
   if ! regenerate_initramfs; then
-    log WARN "Failed to regenerate initramfs: $LAST_ERROR"
+    die "Failed to regenerate initramfs: $LAST_ERROR"
   fi
 
   log INFO "Plymouth disabled successfully"
