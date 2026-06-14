@@ -120,5 +120,5 @@ packages = [
   "zathura",
   "zed",
   "zoxide",
-  "zsh",
+  "zsh"
 ]
