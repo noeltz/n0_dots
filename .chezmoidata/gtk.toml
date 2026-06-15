@@ -5,3 +5,7 @@ fontName = "Maple Mono Normal NFMono"
 monospaceFontName = "Maple Mono Normal NFMono"
 gtkTheme = "adw-gtk3-dark"
 iconTheme = "Papirus"
+
+[nautilus]
+default-folder-viewer = "list-view"
+show-delete-permanently = "true"

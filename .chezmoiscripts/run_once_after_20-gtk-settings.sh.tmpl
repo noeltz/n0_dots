@@ -5,6 +5,8 @@
 # Idempotent — gsettings set only writes if value differs.
 # Exit codes: 0 (success), 1 (failure)
 
+{{ template "run_onchange_hash" . -}}
+
 set -euo pipefail
 shopt -s nullglob globstar
 
@@ -19,6 +21,10 @@ main() {
 
   {{ range $key, $val := .gtk -}}
   gsettings set org.gnome.desktop.interface {{ $key | kebabcase }} {{ $val | quote }} && log INFO "{{ $key }} set to {{ $val }}"
+  {{ end -}}
+  
+  {{ range $key, $val := .nautilus -}}
+  gsettings set org.gnome.nautilus.preferences {{ $key | kebabcase }} {{ $val | quote }} && log INFO "{{ $key }} set to {{ $val }}"
   {{ end -}}
 }
 
