@@ -3,5 +3,5 @@
 disable_autostart = [
     "blueman.desktop",
     "nm-applet.desktop",
-    "cachyos-hello",
+    "cachyos-hello.desktop",
 ]
