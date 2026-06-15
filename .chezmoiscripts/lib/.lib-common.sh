@@ -725,3 +725,64 @@ enable_service() {
     ;;
   esac
 }
+
+# Disables (and stops) a systemd service/timer/socket.
+#
+# Idempotent: skips if already disabled or static. Runs 'systemctl disable --now'.
+# For scope 'user', operates on the user manager (no sudo); 'system' uses sudo.
+#
+# Arguments:
+#   $1 - Unit name (e.g., 'bluetooth', 'docker.socket')
+#   $2 - Scope: 'system' or 'user' (default: 'system')
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success (disabled or already disabled), 1 on failure, 2 on invalid args
+disable_service() {
+  local unit="${1:-}"
+  local scope="${2:-system}"
+
+  LAST_ERROR=""
+
+  if [[ -z "$unit" ]]; then
+    LAST_ERROR="disable_service() requires a unit argument"
+    return 2
+  fi
+
+  if [[ "$scope" != "system" ]] && [[ "$scope" != "user" ]]; then
+    LAST_ERROR="Invalid scope: $scope (must be 'system' or 'user')"
+    return 2
+  fi
+
+  local use_sudo="true"
+  local systemctl_args=()
+  if [[ "$scope" = "user" ]]; then
+    use_sudo="false"
+    systemctl_args=("--user")
+  fi
+
+  local status_code=0
+  _run_with_optional_sudo "$use_sudo" systemctl "${systemctl_args[@]}" is-enabled "$unit" >/dev/null 2>&1 || status_code=$?
+
+  case "$status_code" in
+  0)
+    if _run_with_optional_sudo "$use_sudo" systemctl "${systemctl_args[@]}" disable --now "$unit" >/dev/null 2>&1; then
+      return 0
+    fi
+    LAST_ERROR="Failed to disable $unit (scope: $scope)"
+    return 1
+    ;;
+  1 | 3)
+    # Already disabled (1) or static (3) — nothing to do
+    return 0
+    ;;
+  4)
+    LAST_ERROR="Unit not found: $unit"
+    return 1
+    ;;
+  *)
+    LAST_ERROR="Failed to query state of $unit (scope: $scope)"
+    return 1
+    ;;
+  esac
+}

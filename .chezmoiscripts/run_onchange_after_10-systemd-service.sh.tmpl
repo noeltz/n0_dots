@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# run_onchange_after_10-systemd-service.sh - Configure systemd services
+#
+# Wires user services into the niri session (add-wants niri.service), then
+# disables and enables the declared system/user services. Services are declared
+# in .chezmoidata/services.toml (niri_wants, enable_system, disable_system,
+# enable_user, disable_user). All operations are idempotent via lib helpers;
+# individual failures are logged as warnings.
+# Exit codes: 0 (success), 1 (failure)
+
+{{ template "run_onchange_hash" . -}}
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+main() {
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
+  fi
+
+  print_box "Systemd Services"
+
+  log STEP "Wiring user services into niri.service"
+  systemctl --user daemon-reload
+  {{ range .niri_wants -}}
+  if systemctl --user add-wants niri.service {{ . | quote }}; then
+    log INFO "Added {{ . }} to niri.service"
+  else
+    log WARN "Failed to add {{ . }} to niri.service"
+  fi
+  {{ end -}}
+  systemctl --user daemon-reload
+
+  log STEP "Disabling services"
+  {{ range .disable_system -}}
+  if disable_service {{ . | quote }} "system"; then
+    log INFO "Disabled system service {{ . }}"
+  else
+    log WARN "Failed to disable {{ . }}: $LAST_ERROR"
+  fi
+  {{ end -}}
+  {{ range .disable_user -}}
+  if disable_service {{ . | quote }} "user"; then
+    log INFO "Disabled user service {{ . }}"
+  else
+    log WARN "Failed to disable {{ . }}: $LAST_ERROR"
+  fi
+  {{ end -}}
+
+  log STEP "Enabling services"
+  {{ range .enable_system -}}
+  if enable_service {{ . | quote }} "system"; then
+    log INFO "Enabled system service {{ . }}"
+  else
+    log WARN "Failed to enable {{ . }}: $LAST_ERROR"
+  fi
+  {{ end -}}
+  {{ range .enable_user -}}
+  if enable_service {{ . | quote }} "user"; then
+    log INFO "Enabled user service {{ . }}"
+  else
+    log WARN "Failed to enable {{ . }}: $LAST_ERROR"
+  fi
+  {{ end -}}
+}
+
+main "$@"
