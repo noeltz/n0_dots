@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# run_onchange_after_11-xdg-autostart.sh - Disable XDG autostart entries
+#
+# Disables declared XDG autostart entries by setting a user-level Hidden=true
+# override in ~/.config/autostart (no sudo). Idempotent: skips entries already
+# marked Hidden=true. Existing user overrides are preserved; only the Hidden
+# flag is added. Entries are declared in .chezmoidata/autostart.toml.
+# Exit codes: 0 (success), 1 (failure)
+
+{{ template "run_onchange_hash" . -}}
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+readonly SYSTEM_AUTOSTART_DIR="/etc/xdg/autostart"
+readonly USER_AUTOSTART_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+
+# Disables a single XDG autostart entry via a user-level Hidden=true override.
+#
+# Idempotent: returns early if the user override already has Hidden=true. If no
+# user file exists yet, copies the system .desktop as the base (preserving an
+# existing user override otherwise). Then strips any existing Hidden= line (to
+# avoid duplicate keys) and appends a single Hidden=true.
+#
+# Arguments:
+#   $1 - .desktop filename (e.g. 'blueman.desktop')
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success or skip, 1 on failure
+_disable_autostart_entry() {
+  local entry="$1"
+  local system_file="$SYSTEM_AUTOSTART_DIR/$entry"
+  local user_file="$USER_AUTOSTART_DIR/$entry"
+
+  LAST_ERROR=""
+
+  if [[ -f "$user_file" ]] && grep -qiE '^[[:space:]]*Hidden[[:space:]]*=[[:space:]]*true' "$user_file"; then
+    log SKIP "${COLOR_GREEN}${entry}${COLOR_RESET} already disabled"
+    return 0
+  fi
+
+  if [[ ! -f "$user_file" ]]; then
+    if [[ ! -f "$system_file" ]]; then
+      LAST_ERROR="No system autostart entry: $system_file"
+      log WARN "$LAST_ERROR"
+      return 0
+    fi
+    if ! mkdir -p "$USER_AUTOSTART_DIR"; then
+      LAST_ERROR="Failed to create $USER_AUTOSTART_DIR"
+      return 1
+    fi
+    if ! cp "$system_file" "$user_file"; then
+      LAST_ERROR="Failed to copy $system_file -> $user_file"
+      return 1
+    fi
+  fi
+
+  # Remove any existing Hidden= line so we end up with exactly one
+  if ! sed -i '/^[[:space:]]*Hidden[[:space:]]*=/d' "$user_file"; then
+    LAST_ERROR="Failed to strip existing Hidden= in $user_file"
+    return 1
+  fi
+
+  if ! printf 'Hidden=true\n' >>"$user_file"; then
+    LAST_ERROR="Failed to append Hidden=true to $user_file"
+    return 1
+  fi
+
+  log INFO "Disabled ${COLOR_CYAN}${entry}${COLOR_RESET}"
+  return 0
+}
+
+main() {
+  local -a entries=()
+
+  {{ range .disable_autostart -}}
+  entries+=({{- . | quote -}})
+  {{ end }}
+
+  print_box "XDG Autostart"
+
+  if [[ ${#entries[@]} -eq 0 ]]; then
+    log SKIP "No XDG autostart entries to disable"
+    return 0
+  fi
+
+  log STEP "Disabling XDG autostart entries"
+  local entry
+  for entry in "${entries[@]}"; do
+    _disable_autostart_entry "$entry" || log WARN "Failed to disable ${entry}: $LAST_ERROR"
+  done
+}
+
+main "$@"

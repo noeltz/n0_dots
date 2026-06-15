@@ -1,0 +1,7 @@
+# XDG autostart entries to disable via a user-level Hidden=true override.
+# Entries are .desktop filenames present in /etc/xdg/autostart, e.g. "blueman.desktop".
+disable_autostart = [
+    "blueman.desktop",
+    "nm-applet.desktop",
+    "cachyos-hello",
+]

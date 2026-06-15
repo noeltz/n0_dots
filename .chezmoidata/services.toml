@@ -20,7 +20,5 @@ enable_user = [
 
 # User services to disable and stop (systemctl --user disable --now). Idempotent.
 disable_user = [
-  "app-blueman@autostart.service",
-  "app-cachyos\\x2dhello@autostart.service",
-  "app-nm\\x2dapplet@autostart.service",
+
 ]
