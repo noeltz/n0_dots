@@ -15,7 +15,7 @@ disable_system = [
 
 # User services to enable (systemctl --user enable). Idempotent.
 enable_user = [
-
+  "app-com.mitchellh.ghostty.service",
 ]
 
 # User services to disable and stop (systemctl --user disable --now). Idempotent.

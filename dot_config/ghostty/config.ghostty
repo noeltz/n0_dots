@@ -3,3 +3,4 @@ font-family = "Maple Mono Normal NFMono"
 font-size = 11
 background-opacity = 0.9
 app-notifications = false
+quit-after-last-window-closed = false
