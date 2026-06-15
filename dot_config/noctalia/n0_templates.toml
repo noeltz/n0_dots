@@ -1,0 +1,25 @@
+[theme.templates]
+enable_builtin_templates   = true
+enable_community_templates = true
+builtin_ids = [
+    "alacritty",
+    "btop",
+    "cava",
+    "gtk3",
+    "gtk4",
+    "ghostty",
+    "helix",
+    "kcolorscheme",
+    "kitty",
+    "niri",
+    "qt",
+    "starship",
+    "wezterm"
+]
+community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi" ]
+
+
+[theme.templates.user.helium-policy]
+input_path = '$XDG_CONFIG_HOME/noctalia/n0_templates/chromium-colors.json'
+output_path = '$XDG_DATA_HOME/color-schemes/chromium.json'
+post_hook = 'helium-browser --refresh-platform-policy --no-startup-window'
