@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# run_onchange_before_10-install-package.sh - Install packages via paru
+# run_onchange_before_10-install-package.sh - Uninstall and install packages via paru
 #
-# Installs packages from .chezmoidata/packages.toml.
-# Skips already-installed packages. Runs unattended (--noconfirm).
+# Removes packages declared in .chezmoidata/packages.toml (uninstall + uninstall_force),
+# then installs the packages list. Skips already-installed and not-installed items.
+# Runs unattended (--noconfirm).
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . -}}
@@ -16,10 +17,69 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 source "$LIB_DIR/.lib-common.sh"
 
 packages=()
+uninstall=()
+uninstall_force=()
 
 {{ range .packages }}
 packages+=({{- . | quote -}})
 {{ end }}
+{{ range .uninstall }}
+uninstall+=({{- . | quote -}})
+{{ end }}
+{{ range .uninstall_force }}
+uninstall_force+=({{- . | quote -}})
+{{ end }}
+
+# Removes packages via paru with the given flags.
+#
+# Filters to currently-installed packages (pacman -Qi), batching the removal.
+# 'clean' uses -Rns (package + unneeded deps + config); 'force' uses -Rdd
+# (ignore dependencies, for conflict replacements). Uses --sudoloop to keep
+# sudo alive. Failures are logged and skipped so installation can proceed.
+#
+# Arguments:
+#   $1 - Removal mode: 'clean' or 'force'
+#   $@ - Package names
+# Returns:
+#   0 always (warns on failure)
+_remove_packages() {
+  local mode="$1"
+  shift
+
+  if [[ $# -eq 0 ]]; then
+    return 0
+  fi
+
+  local -a flags=()
+  case "$mode" in
+  clean) flags=(-Rns) ;;
+  force) flags=(-Rdd) ;;
+  *) die "Invalid removal mode: $mode" ;;
+  esac
+
+  local -a installed=()
+  local pkg
+  for pkg in "$@"; do
+    if pacman -Qi "$pkg" >/dev/null 2>&1; then
+      installed+=("$pkg")
+    else
+      log SKIP "${COLOR_GREEN}${pkg}${COLOR_RESET} not installed"
+    fi
+  done
+
+  if [[ ${#installed[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  log INFO "Removing (${mode}): ${installed[*]}"
+  if ! paru "${flags[@]}" --noconfirm --sudoloop "${installed[@]}"; then
+    log WARN "Failed to remove one or more packages (${mode}): ${installed[*]}"
+    return 0
+  fi
+
+  log INFO "Removed (${mode}): ${installed[*]}"
+  return 0
+}
 
 main() {
   if ! request_sudo; then
@@ -35,10 +95,14 @@ main() {
   log STEP "Syncing package databases"
   paru -Sy --noconfirm
 
-  # Resolve conflicts that block automatic replacements
-  if pacman -Qi jack2 &>/dev/null; then
-    log INFO "Removing jack2 for replacement by pipewire-jack"
-    sudo pacman -Rdd --noconfirm jack2
+  if [[ ${#uninstall_force[@]} -gt 0 ]]; then
+    log STEP "Removing conflicting packages (ignore dependencies)"
+    _remove_packages force "${uninstall_force[@]}"
+  fi
+
+  if [[ ${#uninstall[@]} -gt 0 ]]; then
+    log STEP "Removing unwanted packages (clean)"
+    _remove_packages clean "${uninstall[@]}"
   fi
 
   log STEP "Installing packages..."

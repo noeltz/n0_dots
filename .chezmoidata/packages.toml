@@ -122,3 +122,14 @@ packages = [
   "zoxide",
   "zsh"
 ]
+
+# Packages to remove cleanly (package + unneeded deps + config) via paru -Rns.
+uninstall = [
+
+]
+
+# Packages to force-remove ignoring dependencies (paru -Rdd) before install,
+# e.g. to resolve conflicts that block automatic replacements (jack2 -> pipewire-jack).
+uninstall_force = [
+  "jack2",
+]
