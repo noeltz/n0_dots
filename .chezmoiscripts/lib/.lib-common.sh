@@ -259,8 +259,8 @@ is_laptop() {
 request_sudo() {
   printf '\n'
   printf '  ╭──────────────────────────────────────╮\n'
-  printf '  │  Sudo Authentication Required         │\n'
-  printf '  │  Password is needed for system setup  │\n'
+  printf '  │  Sudo Authentication Required        │\n'
+  printf '  │  Password is needed for system setup │\n'
   printf '  ╰──────────────────────────────────────╯\n'
   printf '\n'
 
