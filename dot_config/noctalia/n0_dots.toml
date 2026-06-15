@@ -129,7 +129,7 @@ scale = 1.1500000000000001
 vertical_format = "{:%d}\\n{:%m}"
 
 [widget.launcher]
-cutom_image = "~/.local/share/icons/n0_logo.svg"
+custom_image = "~/.local/share/icons/n0_logo.svg"
 custom_image_colorize = true
 icon_color = "tertiary"
 scale = 1.8
