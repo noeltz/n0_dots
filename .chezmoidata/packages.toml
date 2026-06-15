@@ -124,6 +124,7 @@ packages = [
 
 # Packages to remove cleanly (package + unneeded deps + config) via paru -Rns.
 uninstall = [
+  "cachyos-zsh-config",
   "vim",
 ]
 
