@@ -1,0 +1,243 @@
+#!/usr/bin/env bash
+# run_once_after_81-init-github.sh - Configure git client and authenticate gh CLI
+#
+# Authenticates the GitHub CLI (gh):
+#   - If pass-cli is available and logged in, reads a fine-grained PAT from the
+#     Proton Pass vault and uses it to authenticate gh (--with-token).
+#   - Otherwise, falls back to the OAuth device flow that runs fully on a TTY
+#     without a local browser (the user completes it on any device at
+#     https://github.com/login/device).
+# After a successful login, configures the git client (user.name, user.email,
+# init.defaultBranch) using the GitHub account details.
+# Exit codes: 0 (success), 1 (failure)
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+readonly GH_HOSTNAME="github.com"
+readonly GH_PROTOCOL="https"
+readonly PASS_VAULT="personal"
+readonly PASS_ITEM="github-pat"
+
+# Verifies that required commands are available.
+#
+# Globals:
+#   LAST_ERROR - Set on missing dependency
+_require_commands() {
+  local cmd
+  for cmd in git gh; do
+    if ! command_exists "$cmd"; then
+      die "$cmd is not installed. Ensure 'git' and 'github-cli' are in your packages."
+    fi
+  done
+}
+
+# Checks whether gh is already authenticated.
+#
+# Returns:
+#   0 if authenticated, 1 otherwise
+_gh_authenticated() {
+  gh auth status >/dev/null 2>&1
+}
+
+# Checks whether pass-cli is installed and the user is logged in.
+#
+# Returns:
+#   0 if pass-cli is available and logged in, 1 otherwise
+_pass_cli_ready() {
+  command_exists "pass-cli" || return 1
+  pass-cli status >/dev/null 2>&1 || return 1
+  return 0
+}
+
+# Reads the GitHub PAT from Proton Pass.
+#
+# Outputs:
+#   Token string to stdout
+# Returns:
+#   0 on success, 1 on failure
+_token_from_pass() {
+  pass-cli item view --vault-name "$PASS_VAULT" --item-title "$PASS_ITEM" field password 2>/dev/null
+}
+
+# Configures git to use gh as the credential helper for the host.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success, 1 on failure
+_setup_git_credentials() {
+  LAST_ERROR=""
+
+  if ! gh auth setup-git --hostname "$GH_HOSTNAME" >/dev/null 2>&1; then
+    LAST_ERROR="gh auth setup-git failed"
+    return 1
+  fi
+
+  return 0
+}
+
+# Authenticates gh using a fine-grained PAT retrieved from Proton Pass.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success, 1 on failure
+_login_with_token() {
+  LAST_ERROR=""
+
+  local token
+  if ! token="$(_token_from_pass)"; then
+    LAST_ERROR="Failed to read GitHub token from pass-cli"
+    return 1
+  fi
+
+  if [[ -z "$token" ]]; then
+    LAST_ERROR="pass-cli returned an empty token for item '$PASS_ITEM'"
+    return 1
+  fi
+
+  if ! printf '%s' "$token" | gh auth login --hostname "$GH_HOSTNAME" --git-protocol "$GH_PROTOCOL" --with-token; then
+    LAST_ERROR="gh auth login --with-token failed"
+    return 1
+  fi
+
+  _setup_git_credentials
+}
+
+# Authenticates gh via the OAuth device flow (TTY-only, no local browser).
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success, 1 on failure
+_login_device_flow() {
+  LAST_ERROR=""
+
+  log INFO "Device flow: when prompted, copy the one-time code and open"
+  log INFO "https://github.com/login/device on any device to authorize."
+
+  if ! gh auth login --hostname "$GH_HOSTNAME" --git-protocol "$GH_PROTOCOL" --web; then
+    LAST_ERROR="gh auth login --web failed"
+    return 1
+  fi
+
+  _setup_git_credentials
+}
+
+# Retrieves the GitHub account login (username).
+#
+# Outputs:
+#   Login string to stdout
+_get_user_login() {
+  gh api user --jq '.login' 2>/dev/null
+}
+
+# Retrieves the GitHub account display name.
+#
+# Outputs:
+#   Display name string to stdout (may be null)
+_get_user_name() {
+  gh api user --jq '.name' 2>/dev/null
+}
+
+# Retrieves the GitHub account email, with sensible fallbacks.
+#
+# Tries the primary email from the emails API, then the public profile email,
+# and finally falls back to the privacy-preserving noreply address.
+#
+# Outputs:
+#   Email string to stdout
+_get_user_email() {
+  local email login id
+
+  email=$(gh api user/emails --jq '[.[] | select(.primary == true)][0].email' 2>/dev/null) || email=""
+
+  if [[ -z "$email" ]] || [[ "$email" == "null" ]]; then
+    email=$(gh api user --jq '.email' 2>/dev/null) || email=""
+  fi
+
+  if [[ -z "$email" ]] || [[ "$email" == "null" ]]; then
+    login=$(gh api user --jq '.login' 2>/dev/null) || login=""
+    id=$(gh api user --jq '.id' 2>/dev/null) || id=""
+    if [[ -n "$id" ]] && [[ -n "$login" ]]; then
+      email="${id}+${login}@users.noreply.github.com"
+    elif [[ -n "$login" ]]; then
+      email="${login}@users.noreply.github.com"
+    fi
+  fi
+
+  printf '%s' "$email"
+}
+
+# Configures the git client from the authenticated GitHub account.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+_configure_git_client() {
+  LAST_ERROR=""
+
+  local login name email
+  login="$(_get_user_login)" || login=""
+  name="$(_get_user_name)" || name=""
+  email="$(_get_user_email)" || email=""
+
+  if [[ -z "$login" ]]; then
+    die "Could not determine GitHub username"
+  fi
+
+  if [[ -z "$name" ]] || [[ "$name" == "null" ]]; then
+    name="$login"
+  fi
+
+  git config --global user.name "$name"
+  log INFO "git user.name set to '${COLOR_CYAN}${name}${COLOR_RESET}'"
+
+  if [[ -n "$email" ]] && [[ "$email" != "null" ]]; then
+    git config --global user.email "$email"
+    log INFO "git user.email set to '${COLOR_CYAN}${email}${COLOR_RESET}'"
+  else
+    log WARN "Could not determine GitHub email; user.email left unchanged"
+  fi
+
+  git config --global init.defaultBranch main
+  log INFO "git init.defaultBranch set to 'main'"
+}
+
+main() {
+  _require_commands
+
+  print_box "GitHub CLI & Git"
+
+  if _gh_authenticated; then
+    log SKIP "Already authenticated with GitHub"
+  else
+    log STEP "Authenticating with GitHub"
+
+    if _pass_cli_ready; then
+      log INFO "pass-cli available; fetching token from vault '${PASS_VAULT}'"
+      if ! _login_with_token; then
+        die "Token login failed: $LAST_ERROR"
+      fi
+      log INFO "Authenticated via pass-cli token"
+    else
+      log INFO "pass-cli unavailable or not logged in; starting device flow"
+      if ! _login_device_flow; then
+        die "Device flow login failed: $LAST_ERROR"
+      fi
+      log INFO "Authenticated via device flow"
+    fi
+  fi
+
+  log STEP "Configuring git client"
+  _configure_git_client
+
+  log INFO "GitHub CLI and git client setup complete"
+}
+
+main "$@"
