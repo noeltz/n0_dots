@@ -7,8 +7,9 @@
 #   - Otherwise, falls back to the OAuth device flow that runs fully on a TTY
 #     without a local browser (the user completes it on any device at
 #     https://github.com/login/device).
-# After a successful login, configures the git client (user.name, user.email,
-# init.defaultBranch) using the GitHub account details.
+# After a successful login, configures the git client: user.name (GitHub display
+# name or login), a privacy-preserving noreply user.email derived from the login,
+# and init.defaultBranch.
 # Exit codes: 0 (success), 1 (failure)
 
 set -euo pipefail
@@ -151,36 +152,11 @@ _get_user_name() {
   gh api user --jq '.name' 2>/dev/null
 }
 
-# Retrieves the GitHub account email, with sensible fallbacks.
-#
-# Tries the primary email from the emails API, then the public profile email,
-# and finally falls back to the privacy-preserving noreply address.
-#
-# Outputs:
-#   Email string to stdout
-_get_user_email() {
-  local email login id
-
-  email=$(gh api user/emails --jq '[.[] | select(.primary == true)][0].email' 2>/dev/null) || email=""
-
-  if [[ -z "$email" ]] || [[ "$email" == "null" ]]; then
-    email=$(gh api user --jq '.email' 2>/dev/null) || email=""
-  fi
-
-  if [[ -z "$email" ]] || [[ "$email" == "null" ]]; then
-    login=$(gh api user --jq '.login' 2>/dev/null) || login=""
-    id=$(gh api user --jq '.id' 2>/dev/null) || id=""
-    if [[ -n "$id" ]] && [[ -n "$login" ]]; then
-      email="${id}+${login}@users.noreply.github.com"
-    elif [[ -n "$login" ]]; then
-      email="${login}@users.noreply.github.com"
-    fi
-  fi
-
-  printf '%s' "$email"
-}
-
 # Configures the git client from the authenticated GitHub account.
+#
+# Uses the GitHub login for user.name (falling back from the display name) and
+# derives a privacy-preserving noreply address (<login>+noreply@github.com) for
+# user.email, so the account's real email is never exposed.
 #
 # Globals:
 #   LAST_ERROR - Set on failure
@@ -190,7 +166,6 @@ _configure_git_client() {
   local login name email
   login="$(_get_user_login)" || login=""
   name="$(_get_user_name)" || name=""
-  email="$(_get_user_email)" || email=""
 
   if [[ -z "$login" ]]; then
     die "Could not determine GitHub username"
@@ -200,15 +175,13 @@ _configure_git_client() {
     name="$login"
   fi
 
+  email="${login}+noreply@github.com"
+
   git config --global user.name "$name"
   log INFO "git user.name set to '${COLOR_CYAN}${name}${COLOR_RESET}'"
 
-  if [[ -n "$email" ]] && [[ "$email" != "null" ]]; then
-    git config --global user.email "$email"
-    log INFO "git user.email set to '${COLOR_CYAN}${email}${COLOR_RESET}'"
-  else
-    log WARN "Could not determine GitHub email; user.email left unchanged"
-  fi
+  git config --global user.email "$email"
+  log INFO "git user.email set to '${COLOR_CYAN}${email}${COLOR_RESET}'"
 
   git config --global init.defaultBranch main
   log INFO "git init.defaultBranch set to 'main'"
