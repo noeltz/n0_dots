@@ -65,7 +65,7 @@ _install_or_update() {
 # Returns:
 #   0 if logged in, 1 otherwise
 _is_logged_in() {
-  "$CMD_NAME" status >/dev/null 2>&1
+  "$CMD_NAME" test >/dev/null 2>&1
 }
 
 # Runs the interactive Proton Pass CLI login flow.
