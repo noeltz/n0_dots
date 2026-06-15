@@ -101,7 +101,6 @@ packages = [
   "tufw-bin",
   "udiskie",
   "vesktop-bin",
-  "vim",
   "viu",
   "chaotic-aur/vscodium",
   "chaotic-aur/vscodium-marketplace",
@@ -125,7 +124,7 @@ packages = [
 
 # Packages to remove cleanly (package + unneeded deps + config) via paru -Rns.
 uninstall = [
-
+  "vim",
 ]
 
 # Packages to force-remove ignoring dependencies (paru -Rdd) before install,
