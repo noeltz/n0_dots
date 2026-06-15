@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# run_once_after_80-init-proton-pass-cli.sh - Install and configure Proton Pass CLI
+#
+# Installs or updates the Proton Pass CLI via the official installer script,
+# then performs an interactive login if not already authenticated.
+# Exit codes: 0 (success), 1 (failure)
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+readonly CMD_NAME="pass-cli"
+readonly INSTALL_URL="https://proton.me/download/pass-cli/install.sh"
+readonly INSTALL_DIR="$HOME/.local/bin"
+
+# Ensures the install directory is in PATH for the current session.
+#
+# Globals:
+#   PATH - Prepended with INSTALL_DIR when missing
+_ensure_install_dir_in_path() {
+  case ":$PATH:" in
+  *":$INSTALL_DIR:"*) ;;
+  *)
+    export PATH="$INSTALL_DIR:$PATH"
+    ;;
+  esac
+}
+
+# Installs or updates Proton Pass CLI using the official installer.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success, 1 on failure
+_install_or_update() {
+  LAST_ERROR=""
+
+  if command_exists "$CMD_NAME"; then
+    log INFO "Updating $CMD_NAME to latest version"
+  else
+    log INFO "Installing $CMD_NAME"
+  fi
+
+  if ! curl -fsSL "$INSTALL_URL" | bash; then
+    LAST_ERROR="Installer failed for $CMD_NAME"
+    return 1
+  fi
+
+  hash -r
+
+  if ! command_exists "$CMD_NAME"; then
+    LAST_ERROR="$CMD_NAME not found in PATH after install. Ensure $INSTALL_DIR is in your PATH."
+    return 1
+  fi
+
+  return 0
+}
+
+# Checks whether the user is logged in to Proton Pass CLI.
+#
+# Returns:
+#   0 if logged in, 1 otherwise
+_is_logged_in() {
+  "$CMD_NAME" status >/dev/null 2>&1
+}
+
+# Runs the interactive Proton Pass CLI login flow.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 on success, 1 on failure
+_login() {
+  LAST_ERROR=""
+
+  log STEP "Starting interactive login"
+
+  "$CMD_NAME" login --interactive || true
+
+  if _is_logged_in; then
+    return 0
+  fi
+
+  LAST_ERROR="Login failed or was cancelled"
+  return 1
+}
+
+main() {
+  _ensure_install_dir_in_path
+
+  print_box "Proton Pass CLI"
+
+  log STEP "Installing / updating $CMD_NAME"
+  if ! _install_or_update; then
+    die "$LAST_ERROR"
+  fi
+  log INFO "$CMD_NAME installed"
+
+  log STEP "Checking login status"
+  if _is_logged_in; then
+    log SKIP "Already logged in"
+  elif ! _login; then
+    die "$LAST_ERROR. Try '$CMD_NAME login --interactive' manually."
+  else
+    log INFO "Login successful"
+  fi
+
+  log INFO "Setup complete. You can now use '$CMD_NAME'."
+}
+
+main "$@"
