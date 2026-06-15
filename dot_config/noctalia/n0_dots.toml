@@ -95,23 +95,6 @@ mode = "dark"
 source = "wallpaper"
 wallpaper_scheme = "faithful"
 
-    [theme.templates]
-    builtin_ids = [
-        "alacritty",
-        "btop",
-        "cava",
-        "gtk3",
-        "gtk4",
-        "ghostty",
-        "helix",
-        "kcolorscheme",
-        "kitty",
-        "niri",
-        "qt",
-        "starship",
-        "wezterm"
-    ]
-    community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi" ]
 
 [wallpaper]
 directory = "~/Pictures/Wallpaper"
