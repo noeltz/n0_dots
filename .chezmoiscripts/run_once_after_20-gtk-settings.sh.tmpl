@@ -23,6 +23,8 @@ main() {
   gsettings set org.gnome.desktop.interface {{ $key | kebabcase }} {{ $val | quote }} && log INFO "{{ $key }} set to {{ $val }}"
   {{ end -}}
   
+  log STEP "Applying Nautilus settings"
+  
   {{ range $key, $val := .nautilus -}}
   gsettings set org.gnome.nautilus.preferences {{ $key | kebabcase }} {{ $val | quote }} && log INFO "{{ $key }} set to {{ $val }}"
   {{ end -}}
