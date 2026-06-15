@@ -23,6 +23,7 @@ readonly GH_HOSTNAME="github.com"
 readonly GH_PROTOCOL="https"
 readonly PASS_VAULT="personal"
 readonly PASS_ITEM="github-pat"
+readonly PASS_FIELD="password"
 
 # Verifies that required commands are available.
 #
@@ -55,16 +56,6 @@ _pass_cli_ready() {
   return 0
 }
 
-# Reads the GitHub PAT from Proton Pass.
-#
-# Outputs:
-#   Token string to stdout
-# Returns:
-#   0 on success, 1 on failure
-_token_from_pass() {
-  pass-cli item view --vault-name "$PASS_VAULT" --item-title "$PASS_ITEM" field password 2>/dev/null
-}
-
 # Configures git to use gh as the credential helper for the host.
 #
 # Globals:
@@ -84,6 +75,10 @@ _setup_git_credentials() {
 
 # Authenticates gh using a fine-grained PAT retrieved from Proton Pass.
 #
+# Reads the token via the documented --field flag, then pipes it into
+# 'gh auth login --with-token'. pass-cli stderr is captured so the real
+# failure reason can be reported instead of swallowed.
+#
 # Globals:
 #   LAST_ERROR - Set on failure
 # Returns:
@@ -91,14 +86,24 @@ _setup_git_credentials() {
 _login_with_token() {
   LAST_ERROR=""
 
-  local token
-  if ! token="$(_token_from_pass)"; then
-    LAST_ERROR="Failed to read GitHub token from pass-cli"
+  local token err_file err_msg
+  err_file="$(mktemp)"
+
+  if ! token="$(pass-cli item view --vault-name "$PASS_VAULT" --item-title "$PASS_ITEM" --field "$PASS_FIELD" 2>"$err_file")"; then
+    err_msg="$(<"$err_file")"
+    err_msg="${err_msg#"${err_msg%%[![:space:]]*}"}"
+    err_msg="${err_msg%"${err_msg##*[![:space:]]}"}"
+    rm -f "$err_file"
+    LAST_ERROR="pass-cli item view failed: ${err_msg:-unknown error}"
     return 1
   fi
+  rm -f "$err_file"
+
+  token="${token#"${token%%[![:space:]]*}"}"
+  token="${token%"${token##*[![:space:]]}"}"
 
   if [[ -z "$token" ]]; then
-    LAST_ERROR="pass-cli returned an empty token for item '$PASS_ITEM'"
+    LAST_ERROR="pass-cli returned an empty token for item '$PASS_ITEM' (vault '$PASS_VAULT', field '$PASS_FIELD')"
     return 1
   fi
 
