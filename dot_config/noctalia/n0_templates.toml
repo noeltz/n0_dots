@@ -25,4 +25,4 @@ output_path = '$XDG_DATA_HOME/color-schemes/chromium.json'
 post_hook = 'helium-browser --refresh-platform-policy --no-startup-window'
 
 [theme.templates.user.gtkreload]
-post_hook = '$XDG_DATA_HOME/bin/gtkreload'
+post_hook = '$XDG_BIN_HOME/gtkreload'
