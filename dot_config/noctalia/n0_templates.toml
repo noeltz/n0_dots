@@ -23,3 +23,6 @@ community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi" ]
 input_path = '$XDG_CONFIG_HOME/noctalia/n0_templates/chromium-colors.json'
 output_path = '$XDG_DATA_HOME/color-schemes/chromium.json'
 post_hook = 'helium-browser --refresh-platform-policy --no-startup-window'
+
+[theme.templates.user.gtkreload]
+post_hook = gtkreload
