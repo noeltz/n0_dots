@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 08_wallpapers.sh - Download and install wallpapers
+# run_onchange_before_20_wallpapers.sh - Download and install wallpapers
 #
 # Downloads wallpapers from GitHub releases and extracts them to ~/Pictures/Wallpaper.
 # Skips download if wallpapers directory already exists and contains files.
@@ -10,6 +10,8 @@
 #   CHEZMOI_SOURCE_DIR - Chezmoi source directory (set by chezmoi)
 # Exit codes:
 #   0 (success), 1 (failure), 127 (missing dependency)
+
+{{ template "run_onchange_hash" . -}}
 
 set -euo pipefail
 
