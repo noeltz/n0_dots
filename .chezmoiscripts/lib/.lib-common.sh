@@ -12,6 +12,10 @@
 
 export LAST_ERROR="${LAST_ERROR:-}"
 
+# Capture lib directory at source-time (not inside a function, where
+# BASH_SOURCE[0] can be unreliable when chezmoi runs scripts from temp paths).
+readonly _LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 if [[ -n "${NO_COLOR:-}" ]] || [[ ! -t 2 ]] || [[ "${TERM:-}" == "dumb" ]]; then
   readonly COLOR_RESET=""
   readonly COLOR_GREEN=""
@@ -217,7 +221,7 @@ fi
 _source_runit_lib() {
   if ! command -v runit_enable_service &>/dev/null; then
     # shellcheck source=/dev/null
-    source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.lib-runit.sh"
+    source "$_LIB_DIR/.lib-runit.sh"
   fi
 }
 

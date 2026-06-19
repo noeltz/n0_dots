@@ -4,6 +4,8 @@
 
 HISTSIZE=10000               # number of commands kept in memory
 SAVEHIST=10000               # number of commands saved to file
+: "${ZDOTDIR:=$HOME/.config/zsh}"   # fallback if ZDOTDIR not set
+[[ -d "$ZDOTDIR" ]] || mkdir -p "$ZDOTDIR"  # ensure directory exists
 HISTFILE="$ZDOTDIR/.zsh_history"   # always override (environment.d sets bash path)
 export HISTSIZE=10000
 export SAVEHIST=10000

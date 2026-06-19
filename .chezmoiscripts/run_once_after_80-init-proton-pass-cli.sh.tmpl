@@ -30,20 +30,21 @@ _ensure_install_dir_in_path() {
   esac
 }
 
-# Installs or updates Proton Pass CLI using the official installer.
+# Installs Proton Pass CLI using the official installer, unless already present.
 #
 # Globals:
 #   LAST_ERROR - Set on failure
 # Returns:
-#   0 on success, 1 on failure
-_install_or_update() {
+#   0 on success or already installed, 1 on failure
+_install() {
   LAST_ERROR=""
 
   if command_exists "$CMD_NAME"; then
-    log INFO "Updating $CMD_NAME to latest version"
-  else
-    log INFO "Installing $CMD_NAME"
+    log SKIP "$CMD_NAME already installed"
+    return 0
   fi
+
+  log INFO "Installing $CMD_NAME"
 
   if ! curl -fsSL "$INSTALL_URL" | bash; then
     LAST_ERROR="Installer failed for $CMD_NAME"
@@ -95,7 +96,7 @@ main() {
   print_box "Proton Pass CLI"
 
   log STEP "Installing / updating $CMD_NAME"
-  if ! _install_or_update; then
+  if ! _install; then
     die "$LAST_ERROR"
   fi
   log INFO "$CMD_NAME installed"
