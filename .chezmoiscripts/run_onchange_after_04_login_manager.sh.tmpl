@@ -124,16 +124,31 @@ main() {
   disable_conflicting_tty
   {{- end }}
 
-  if ! enable_service "greetd" "system"; then
-    die "Failed: $LAST_ERROR"
-  else
-    log INFO "${COLOR_GREEN}greetd${COLOR_RESET} enabled"
-  fi
-
   {{- if eq $distro "void" }}
-  log INFO "Note: If you see 'elogind already running' messages from greetd,"
-  log INFO "      this is a known Void Linux issue and is harmless."
+  # Ensure elogind or seatd is running (greetd needs a seat manager)
+  if command -v sv &>/dev/null; then
+    if sv status elogind &>/dev/null; then
+      log SKIP "elogind already running"
+    elif sv status seatd &>/dev/null; then
+      log SKIP "seatd already running"
+    else
+      log WARN "No seat manager (elogind/seatd) running — greetd may fail to start sessions"
+    fi
+  fi
   {{- end }}
+
+  # Enable greetd by creating the runit symlink only.
+  # Do NOT call sv up — starting greetd during the script takes over VT 1
+  # and crashes the current session. runit starts it automatically on next boot.
+  local greetd_link="/var/service/greetd"
+  if [[ -L "$greetd_link" ]]; then
+    log SKIP "greetd already enabled"
+  elif sudo ln -s /etc/sv/greetd "$greetd_link"; then
+    log INFO "${COLOR_GREEN}greetd${COLOR_RESET} enabled (will start on next boot)"
+  else
+    LAST_ERROR="Failed to create greetd symlink"
+    die "Failed: $LAST_ERROR"
+  fi
 
   log INFO "greetd display manager configuration complete"
 }
