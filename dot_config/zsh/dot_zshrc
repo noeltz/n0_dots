@@ -1,5 +1,14 @@
 #!/usr/bin/env zsh
 
+# Source XDG environment variables for non-systemd systems
+if [ -d "$HOME/.config/environment.d/" ]; then
+  set -a
+  for file in "$HOME/.config/environment.d/"*.conf; do
+      [ -r "$file" ] && source "$file"
+  done
+  set +a
+fi
+
 if [[ -f "$ZDOTDIR/settings.zsh" ]]; then
   source $ZDOTDIR/settings.zsh
 fi
