@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# run_onchange_after_04_login_manager.sh - Configure greetd display manager (cross-distro)
+# run_onchange_after_04_login_manager.sh - Configure display manager (cross-distro)
 #
-# Disables conflicting display managers and enables greetd with tuigreet.
-# On Void: greeter user is '_greeter', also disables agetty-tty1.
-# On Arch: greeter user is 'greeter'.
+# On Arch: enables greetd with tuigreet.
+# On Void: enables lidm (lightweight TUI display manager).
+# Disables conflicting display managers on both systems.
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . -}}
@@ -18,41 +18,22 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
-readonly GREETD_CONFIG_FILE="/etc/greetd/config.toml"
-
-{{- if eq $distro "void" }}
-readonly GREETER_USER="_greeter"
-{{- else }}
-readonly GREETER_USER="greeter"
-{{- end }}
-
 if ! keep_sudo_alive; then
   die "Failed to keep sudo alive"
 fi
 
 # Checks if a runit service is enabled (symlink exists in /var/service).
-#
-# Arguments:
-#   $1 - Service name
-# Returns:
-#   0 if enabled, 1 if not
 _is_runit_service_enabled() {
   [[ -L "/var/service/${1}" ]]
 }
 
 # Checks if a systemd service is enabled.
-#
-# Arguments:
-#   $1 - Service name
-# Returns:
-#   0 if enabled, 1 if not
 _is_systemd_service_enabled() {
   systemctl is-enabled "${1}" >/dev/null 2>&1
 }
 
 disable_conflicting_dms() {
-  local -r other_dms=(sddm gdm gdm3 lightdm lxdm emptty)
-
+  local -r other_dms=(sddm gdm gdm3 lightdm lxdm emptty greetd)
   local svc found=0
   for svc in "${other_dms[@]}"; do
     local is_on=0
@@ -79,6 +60,55 @@ disable_conflicting_dms() {
   fi
 }
 
+{{- if eq $distro "void" }}
+
+configure_lidm() {
+  local -r config_file="/etc/lidm.ini"
+
+  if [[ -f "$config_file" ]]; then
+    log SKIP "$config_file already exists"
+    return 0
+  fi
+
+  write_system_config "$config_file" <<EOF || die "Failed to write lidm config: $LAST_ERROR"
+# /etc/lidm.ini
+[greeter]
+cmd = niri-session
+EOF
+
+  log INFO "Configured lidm display manager"
+}
+
+disable_conflicting_tty() {
+  log STEP "Disabling agetty-tty1 (lidm uses vt=1)"
+  if _is_runit_service_enabled "agetty-tty1"; then
+    if disable_service "agetty-tty1" "system"; then
+      log INFO "Disabled agetty-tty1"
+    else
+      log WARN "Failed to disable agetty-tty1: $LAST_ERROR"
+    fi
+  else
+    log SKIP "agetty-tty1 not active"
+  fi
+}
+
+enable_lidm() {
+  local -r link="/var/service/lidm"
+  if [[ -L "$link" ]]; then
+    log SKIP "lidm already enabled"
+  elif sudo ln -s /etc/sv/lidm "$link"; then
+    log INFO "${COLOR_GREEN}lidm${COLOR_RESET} enabled (will start on next boot)"
+  else
+    LAST_ERROR="Failed to create lidm symlink"
+    die "Failed: $LAST_ERROR"
+  fi
+}
+
+{{- else }}
+
+readonly GREETD_CONFIG_FILE="/etc/greetd/config.toml"
+readonly GREETER_USER="greeter"
+
 configure_greetd() {
   write_system_config "$GREETD_CONFIG_FILE" <<EOF || die "Failed to write greetd config file: $LAST_ERROR"
 [terminal]
@@ -95,62 +125,35 @@ EOF
   log INFO "Configured greetd display manager (greeter: ${GREETER_USER})"
 }
 
-{{- if eq $distro "void" }}
-
-disable_conflicting_tty() {
-  log STEP "Disabling agetty-tty1 (greetd uses vt=1)"
-  if _is_runit_service_enabled "agetty-tty1"; then
-    if disable_service "agetty-tty1" "system"; then
-      log INFO "Disabled agetty-tty1"
-    else
-      log WARN "Failed to disable agetty-tty1: $LAST_ERROR"
-    fi
+enable_greetd() {
+  local -r link="/var/service/greetd"
+  if [[ -L "$link" ]]; then
+    log SKIP "greetd already enabled"
+  elif sudo ln -s /etc/sv/greetd "$link"; then
+    log INFO "${COLOR_GREEN}greetd${COLOR_RESET} enabled (will start on next boot)"
   else
-    log SKIP "agetty-tty1 not active"
+    LAST_ERROR="Failed to create greetd symlink"
+    die "Failed: $LAST_ERROR"
   fi
 }
 
 {{- end }}
 
 main() {
-
   print_box "Login Manager"
-  log STEP "greetd Configuration"
 
   disable_conflicting_dms
-  configure_greetd
 
   {{- if eq $distro "void" }}
+  configure_lidm
   disable_conflicting_tty
+  enable_lidm
+  {{- else }}
+  configure_greetd
+  enable_greetd
   {{- end }}
 
-  {{- if eq $distro "void" }}
-  # Ensure elogind or seatd is running (greetd needs a seat manager)
-  if command -v sv &>/dev/null; then
-    if sv status elogind &>/dev/null; then
-      log SKIP "elogind already running"
-    elif sv status seatd &>/dev/null; then
-      log SKIP "seatd already running"
-    else
-      log WARN "No seat manager (elogind/seatd) running — greetd may fail to start sessions"
-    fi
-  fi
-  {{- end }}
-
-  # Enable greetd by creating the runit symlink only.
-  # Do NOT call sv up — starting greetd during the script takes over VT 1
-  # and crashes the current session. runit starts it automatically on next boot.
-  local greetd_link="/var/service/greetd"
-  if [[ -L "$greetd_link" ]]; then
-    log SKIP "greetd already enabled"
-  elif sudo ln -s /etc/sv/greetd "$greetd_link"; then
-    log INFO "${COLOR_GREEN}greetd${COLOR_RESET} enabled (will start on next boot)"
-  else
-    LAST_ERROR="Failed to create greetd symlink"
-    die "Failed: $LAST_ERROR"
-  fi
-
-  log INFO "greetd display manager configuration complete"
+  log INFO "Display manager configuration complete"
 }
 
 main "$@"

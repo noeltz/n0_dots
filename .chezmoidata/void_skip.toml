@@ -11,6 +11,8 @@
 "devtools" = "Arch-specific packaging toolchain (use xbps-src)"
 "downgrade" = "Arch/AUR-only tool (reinstall from cache on Void)"
 "ghostty-nautilus" = "Void ghostty lacks Nautilus integration"
+"greetd" = "Use lidm instead on Void"
+"greetd-tuigreet" = "Use lidm instead on Void"
 "helium-browser-bin" = "AUR-only Chromium-based browser"
 "noctalia-git" = "AUR-only"
 "nirius" = "Custom/AUR package"

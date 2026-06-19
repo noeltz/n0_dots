@@ -52,6 +52,7 @@ packages = [
   "kcharselect",
   "kde-cli-tools",
   "lazygit",
+  "lidm",
   "libnotify",
   "libpulse",
   "libqalculate",
