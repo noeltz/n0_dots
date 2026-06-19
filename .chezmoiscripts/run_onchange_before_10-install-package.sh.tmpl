@@ -29,36 +29,34 @@ _void_skips=()
 
 {{- if eq $distro "void" }}
 # Void Linux: map package names and filter unavailable packages
-{{ range .packages -}}
-{{- $skip := index $.void_skip . -}}
-{{- if $skip -}}
-_void_skips+=({{- printf "%s|%s" . $skip | quote -}})
-{{- else -}}
-{{- $mapped := index $.void_map . -}}
-{{- if $mapped -}}
-_raw_pkgs+=({{- $mapped | quote -}})
-{{- else -}}
-_raw_pkgs+=({{- . | quote -}})
-{{- end -}}
-{{- end -}}
+{{ range .packages }}
+{{- $skip := index $.void_skip . }}
+{{- $mapped := index $.void_map . }}
+{{- if $skip }}
+_void_skips+=({{ printf "%s|%s" . $skip | quote }})
+{{- else if $mapped }}
+_raw_pkgs+=({{ $mapped | quote }})
+{{- else }}
+_raw_pkgs+=({{ . | quote }})
 {{- end }}
+{{ end }}
 
 # Extra Void-only packages (bluez-deprecated for legacy bluez tools)
 _raw_pkgs+=("bluez-deprecated")
 {{- else }}
 # Arch Linux: use package names directly
-{{ range .packages -}}
-_raw_pkgs+=({{- . | quote -}})
-{{- end }}
+{{ range .packages }}
+_raw_pkgs+=({{ . | quote }})
+{{ end }}
 {{- end }}
 
 # Uninstall lists (Arch-only — these packages don't exist on Void)
-{{ range .uninstall -}}
-uninstall+=({{- . | quote -}})
-{{- end }}
-{{ range .uninstall_force -}}
-uninstall_force+=({{- . | quote -}})
-{{- end }}
+{{ range .uninstall }}
+uninstall+=({{ . | quote }})
+{{ end }}
+{{ range .uninstall_force }}
+uninstall_force+=({{ . | quote }})
+{{ end }}
 
 # Deduplicate packages (handles nerd-fonts-ttf appearing twice on Void)
 _dedup_packages() {
