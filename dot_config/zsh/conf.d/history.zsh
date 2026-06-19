@@ -4,7 +4,7 @@
 
 HISTSIZE=10000               # number of commands kept in memory
 SAVEHIST=10000               # number of commands saved to file
-HISTFILE=${HISTFILE:-$ZDOTDIR/.zsh_history}   # history file path
+HISTFILE="$ZDOTDIR/.zsh_history"   # always override (environment.d sets bash path)
 export HISTSIZE=10000
 export SAVEHIST=10000
 

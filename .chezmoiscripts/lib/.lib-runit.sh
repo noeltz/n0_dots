@@ -71,7 +71,7 @@ runit_enable_service() {
   # Start the service (give it a moment)
   sleep 1
 
-  if ! sv up "$service" &>/dev/null; then
+  if ! sudo sv up "$service" &>/dev/null; then
     LAST_ERROR="Service failed to start: $service"
     return 1
   fi
@@ -123,15 +123,15 @@ runit_disable_service() {
   fi
 
   # Stop the service
-  if sv status "$service" 2>/dev/null | grep -q "^run:"; then
-    if ! sv down "$service" &>/dev/null; then
+  if sudo sv status "$service" 2>/dev/null | grep -q "^run:"; then
+    if ! sudo sv down "$service" &>/dev/null; then
       LAST_ERROR="Failed to stop service: $service"
       return 1
     fi
   fi
 
-  # Remove symlink
-  if ! rm -f "$service_link" 2>/dev/null; then
+  # Remove symlink (requires root — /var/service is root-owned)
+  if ! sudo rm -f "$service_link" 2>/dev/null; then
     LAST_ERROR="Failed to remove service symlink: $service_link"
     return 1
   fi
