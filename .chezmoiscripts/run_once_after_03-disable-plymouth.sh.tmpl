@@ -5,10 +5,19 @@
 # from mkinitcpio, updating kernel cmdline (across all bootloaders), disabling
 # systemd services, and regenerating initramfs.
 #
+# Arch Linux only — skipped on Void Linux (Plymouth not typically used,
+# and Void uses dracut instead of mkinitcpio).
+#
 # Globals:
 #   LAST_ERROR - Error message from last failed operation
 # Exit codes:
 #   0 (success), 1 (failure)
+
+{{- if eq .chezmoi.osRelease.id "void" }}
+# Void Linux: Plymouth disable is not applicable (uses dracut, not mkinitcpio)
+echo "[SKIP] Plymouth disable not applicable on Void Linux"
+exit 0
+{{- end }}
 
 {{ template "run_onchange_hash" . }}
 

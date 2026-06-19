@@ -108,7 +108,11 @@ print_box() {
   local font="${2:-smslant}"
 
   if ! command -v figlet &>/dev/null; then
-    sudo pacman -S --noconfirm figlet 2>/dev/null || true
+    if command_exists xbps-install; then
+      sudo xbps-install -y figlet 2>/dev/null || true
+    elif command_exists pacman; then
+      sudo pacman -S --noconfirm figlet 2>/dev/null || true
+    fi
   fi
 
   if command -v figlet &>/dev/null; then
@@ -202,7 +206,25 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
-# Reloads systemd daemon configuration.
+# Source platform detection library (self-contained, no circular deps)
+if ! command -v detect_distro &>/dev/null; then
+  # shellcheck source=/dev/null
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.lib-platform.sh"
+fi
+
+# Sources runit library if runit is the active init system.
+# Called lazily by enable_service()/disable_service() when needed.
+_source_runit_lib() {
+  if ! command -v runit_enable_service &>/dev/null; then
+    # shellcheck source=/dev/null
+    source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.lib-runit.sh"
+  fi
+}
+
+# Reloads init system daemon configuration.
+#
+# On systemd: runs 'systemctl daemon-reload'. On runit: no-op (runit
+# detects config changes automatically).
 #
 # Globals:
 #   LAST_ERROR - Set on failure
@@ -210,6 +232,13 @@ command_exists() {
 #   0 on success, 1 on failure
 reload_systemd_daemon() {
   LAST_ERROR=""
+
+  local init_sys
+  init_sys=$(get_init_system 2>/dev/null || echo "")
+
+  if [[ "$init_sys" == "runit" ]]; then
+    return 0
+  fi
 
   if ! sudo systemctl daemon-reload >/dev/null 2>&1; then
     LAST_ERROR="Failed to reload systemd daemon"
@@ -221,7 +250,8 @@ reload_systemd_daemon() {
 
 # Detects if system is a laptop.
 #
-# Uses hostnamectl to check chassis type for laptop/notebook.
+# Uses hostnamectl (systemd) or falls back to /sys/class/dmi/id/chassis_type
+# (works on runit/void). Checks for laptop/notebook/portable chassis types.
 #
 # Globals:
 #   LAST_ERROR - Set on failure
@@ -232,13 +262,24 @@ is_laptop() {
 
   LAST_ERROR=""
 
-  if ! chassis=$(hostnamectl chassis 2>/dev/null); then
-    LAST_ERROR="Failed to detect chassis type"
+  # Try hostnamectl first (systemd)
+  if chassis=$(hostnamectl chassis 2>/dev/null); then
+    if [[ "$chassis" =~ (laptop|notebook) ]]; then
+      return 0
+    fi
     return 1
   fi
 
-  if [[ "$chassis" =~ (laptop|notebook) ]]; then
-    return 0
+  # Fallback: read DMI chassis type (works without systemd)
+  if [[ -f /sys/class/dmi/id/chassis_type ]]; then
+    local type
+    type=$(cat /sys/class/dmi/id/chassis_type 2>/dev/null || echo "")
+    # Types 8=Portable, 9=Laptop, 10=Notebook, 11=Handheld, 14=Sub Notebook
+    case "$type" in
+    8 | 9 | 10 | 11 | 14)
+      return 0
+      ;;
+    esac
   fi
 
   return 1
@@ -670,9 +711,13 @@ update_config() {
   return 0
 }
 
-# Enables systemd service/timer/socket.
+# Enables a service/timer/socket (cross-init dispatch).
+#
+# On systemd: uses systemctl enable. On runit: symlinks /etc/sv/<svc> to
+# /var/service/. Idempotent on both systems.
+#
 # Arguments:
-#   $1 - Unit name (e.g., 'ly', 'ly.service', 'docker.socket')
+#   $1 - Unit/service name (e.g., 'greetd', 'docker.socket')
 #   $2 - Scope: 'system' or 'user' (default: 'system')
 # Globals:
 #   LAST_ERROR - Set on failure
@@ -692,6 +737,15 @@ enable_service() {
   if [[ "$scope" != "system" ]] && [[ "$scope" != "user" ]]; then
     LAST_ERROR="Invalid scope: $scope (must be 'system' or 'user')"
     return 2
+  fi
+
+  # Dispatch to runit if active init system
+  local init_sys
+  init_sys=$(get_init_system 2>/dev/null || echo "")
+  if [[ "$init_sys" == "runit" ]]; then
+    _source_runit_lib
+    runit_enable_service "$unit" "$scope"
+    return $?
   fi
 
   local use_sudo="true"
@@ -726,13 +780,13 @@ enable_service() {
   esac
 }
 
-# Disables (and stops) a systemd service/timer/socket.
+# Disables (and stops) a service/timer/socket (cross-init dispatch).
 #
-# Idempotent: skips if already disabled or static. Runs 'systemctl disable --now'.
-# For scope 'user', operates on the user manager (no sudo); 'system' uses sudo.
+# On systemd: runs 'systemctl disable --now'. On runit: removes symlink
+# from /var/service/ and runs 'sv down'. Idempotent on both systems.
 #
 # Arguments:
-#   $1 - Unit name (e.g., 'bluetooth', 'docker.socket')
+#   $1 - Unit/service name (e.g., 'bluetooth', 'docker.socket')
 #   $2 - Scope: 'system' or 'user' (default: 'system')
 # Globals:
 #   LAST_ERROR - Set on failure
@@ -752,6 +806,15 @@ disable_service() {
   if [[ "$scope" != "system" ]] && [[ "$scope" != "user" ]]; then
     LAST_ERROR="Invalid scope: $scope (must be 'system' or 'user')"
     return 2
+  fi
+
+  # Dispatch to runit if active init system
+  local init_sys
+  init_sys=$(get_init_system 2>/dev/null || echo "")
+  if [[ "$init_sys" == "runit" ]]; then
+    _source_runit_lib
+    runit_disable_service "$unit" "$scope"
+    return $?
   fi
 
   local use_sudo="true"

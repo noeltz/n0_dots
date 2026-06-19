@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# run_once_before_00-install-aur-helper.sh - Install paru AUR helper and configure Chaotic-AUR
+# run_once_before_00-install-aur-helper.sh - System bootstrap (cross-distro)
 #
-# Installs paru (AUR helper) and sets up Chaotic-AUR repository.
-# Skipped if both are already configured. Runs unattended (--noconfirm).
+# Arch Linux: installs paru (AUR helper) and configures Chaotic-AUR repository.
+# Void Linux: runs system update and enables nonfree repository.
+# Skipped if already configured. Runs unattended.
 # Exit codes: 0 (success), 1 (failure)
+
+{{- $distro := .chezmoi.osRelease.id -}}
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -12,6 +15,8 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
+
+{{- if eq $distro "arch" }}
 
 readonly AUR_HELPER="paru"
 
@@ -65,5 +70,40 @@ main() {
   "$AUR_HELPER" -Syu --noconfirm --sudoloop
   log INFO "System update complete."
 }
+
+{{- else if eq $distro "void" }}
+
+main() {
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
+  fi
+
+  print_box "Void Linux Bootstrap"
+
+  # --- Full system update ---
+  log STEP "Running full system update"
+  sudo xbps-install -Su
+  log INFO "System update complete."
+
+  # --- Enable nonfree repository (needed for spotify, chromium-widevine) ---
+  if ! xbps-query void-repo-nonfree &>/dev/null 2>&1; then
+    log STEP "Enabling nonfree repository"
+    sudo xbps-install -y void-repo-nonfree
+    sudo xbps-install -S
+    log INFO "Nonfree repository enabled."
+  else
+    log SKIP "Nonfree repository already enabled"
+  fi
+
+  log INFO "Void Linux bootstrap complete."
+}
+
+{{- else }}
+
+main() {
+  die "Unsupported distribution. This script supports Arch and Void Linux only."
+}
+
+{{- end }}
 
 main "$@"

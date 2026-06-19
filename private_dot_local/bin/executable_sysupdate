@@ -7,11 +7,51 @@ pkg_text=" - System packages updated."
 flatpak_text=" - Flatpak packages updated."
 post_upd_text=" - Post-update checks completed."
 
-upd_command="pacman" # Fallback when no alternative package managers are detected
-
-upd_args=(-Syu)
+upd_command=""
+upd_args=()
 flatpak_args=(-u --system)
-post_upd_args=(-i "sddm.service" -i "gdm.service" -i "ly@tty2.service") # Ignore display manager services to avoid nuking the current session
+post_upd_args=()
+post_upd_cmd=""
+
+_detect_distro() {
+  if [[ -f /etc/os-release ]]; then
+    grep -oP '^ID=\K\w+' /etc/os-release 2>/dev/null | tr '[:upper:]' '[:lower:]'
+  else
+    echo "unknown"
+  fi
+}
+
+_setup_arch() {
+  upd_command="pacman"
+  upd_args=(-Syu)
+  post_upd_cmd="checkservices"
+  post_upd_args=(-i "sddm.service" -i "gdm.service" -i "ly@tty2.service")
+}
+
+_setup_void() {
+  upd_command="xbps-install"
+  upd_args=(-Su)
+  post_upd_cmd=""
+}
+
+case "$(_detect_distro)" in
+arch)
+  _setup_arch
+  for pm in paru yay; do
+    if command -v "$pm" >/dev/null 2>&1; then
+      upd_command="$pm"
+      break
+    fi
+  done
+  ;;
+void)
+  _setup_void
+  ;;
+*)
+  upd_command="pacman"
+  upd_args=(-Syu)
+  ;;
+esac
 
 _confirm_prompt() {
  SKIP_PROMPT=1
@@ -34,24 +74,24 @@ _uodate_system() {
   if [ "$SKIP_PROMPT" -eq 1 ]; then
     upd_args+=(--noconfirm)
     flatpak_args+=(-y)
-    post_upd_args+=(-a)
+    if [[ -n "$post_upd_cmd" ]]; then
+      post_upd_args+=(-a)
+    fi
     #echo -e "${ORANGE}===>${NC}  Skipping confirmation prompts..."
   fi
 
   echo -e "${ORANGE}===>${NC}  Beginning system update...\n"
 
-  pm_list=(paru yay)
-
-  for pm in "${pm_list[@]}"; do
-    if which "$pm" >/dev/null 2>&1; then
-      upd_command="$pm"
-      break
+  if [[ "$upd_command" == "xbps-install" ]]; then
+    if ! sudo "$upd_command" "${upd_args[@]}"; then
+      failed_update=true
+      pkg_text="<b>[!] Failed to update system packages.</b>"
     fi
-  done
-
-  if ! $upd_command "${upd_args[@]}"; then
-    failed_update=true
-    pkg_text="<b>[!] Failed to update system packages.</b>"
+  else
+    if ! "$upd_command" "${upd_args[@]}"; then
+      failed_update=true
+      pkg_text="<b>[!] Failed to update system packages.</b>"
+    fi
   fi
 
   echo -e "\n${ORANGE}===>${NC}  Checking for flatpak updates...\n"
@@ -63,9 +103,13 @@ _uodate_system() {
 
   echo -e "\n${ORANGE}===>${NC}  Running post-installation checks...\n"
 
-  if ! sudo checkservices "${post_upd_args[@]}"; then
-    failed_update=true
-    post_upd_text="<b>[!] Failed to run post-service checks.</b>"
+  if [[ -n "$post_upd_cmd" ]] && command -v "$post_upd_cmd" >/dev/null 2>&1; then
+    if ! sudo "$post_upd_cmd" "${post_upd_args[@]}"; then
+      failed_update=true
+      post_upd_text="<b>[!] Failed to run post-service checks.</b>"
+    fi
+  else
+    post_upd_text=" - Post-update checks skipped (not available on this distro)."
   fi
 
   notif_msg="$pkg_text\n$flatpak_text\n$post_upd_text"

@@ -1,0 +1,28 @@
+# Packages to skip on Void Linux with reasons
+# These packages either don't exist or don't make sense on Void
+
+[void_skip]
+"adw-gtk-theme" = "Not available on Void"
+"archlinux-contrib" = "Arch-specific helper scripts"
+"bibata-cursor-theme-bin" = "AUR-only, not packaged on Void"
+"chaotic-aur/vscodium" = "Use 'vscode' instead (installs as code-oss)"
+"chaotic-aur/vscodium-marketplace" = "AUR-only Vscodium patch"
+"darkly-bin" = "AUR-only KDE Plasma 6 theme"
+"devtools" = "Arch-specific packaging toolchain (use xbps-src)"
+"downgrade" = "Arch/AUR-only tool (reinstall from cache on Void)"
+"ghostty-nautilus" = "Void ghostty lacks Nautilus integration"
+"helium-browser-bin" = "AUR-only Chromium-based browser"
+"noctalia-git" = "AUR-only"
+"nirius" = "Custom/AUR package"
+"pacman-contrib" = "Arch-specific helper scripts"
+"pacutils" = "Arch-specific libalpm utility"
+"pinta" = "Not packaged on Void (use Flatpak)"
+"python-pywalfox" = "AUR-only"
+"spicetify-cli" = "AUR-only"
+"spicetify-marketplace-bin" = "AUR-only"
+"sysz" = "AUR-only (systemctl+fzf wrapper, systemd-specific)"
+"tufw-bin" = "AUR-only firewall GUI"
+"vesktop-bin" = "Not packaged on Void"
+"xdg-terminal-exec" = "Not packaged on Void"
+"youtui-player" = "AUR-only YouTube Music TUI"
+"zed" = "Not in Void repos"

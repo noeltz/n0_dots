@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# run_once_after_04_login_manager.sh - Configure greetd display manager
+# run_once_after_04_login_manager.sh - Configure greetd display manager (cross-distro)
 #
 # Disables conflicting display managers and enables greetd with tuigreet.
+# On Void: greeter user is '_greeter', also disables agetty-tty1.
+# On Arch: greeter user is 'greeter'.
 # Exit codes: 0 (success), 1 (failure)
 
-{{ template "run_onchange_hash" . }}
+{{ template "run_onchange_hash" . -}}
+
+{{- $distro := .chezmoi.osRelease.id -}}
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -16,6 +20,12 @@ source "$LIB_DIR/.lib-common.sh"
 
 readonly GREETD_CONFIG_FILE="/etc/greetd/config.toml"
 
+{{- if eq $distro "void" }}
+readonly GREETER_USER="_greeter"
+{{- else }}
+readonly GREETER_USER="greeter"
+{{- end }}
+
 if ! keep_sudo_alive; then
   die "Failed to keep sudo alive"
 fi
@@ -23,17 +33,10 @@ fi
 disable_conflicting_dms() {
   local -r other_dms=(sddm gdm gdm3 lightdm lxdm emptty)
 
-  local svc status
+  local svc
   for svc in "${other_dms[@]}"; do
-    status=$(sudo systemctl is-enabled "${svc}.service" 2>/dev/null || true)
-
-    if [[ "$status" == "enabled" ]]; then
-      if sudo systemctl disable "${svc}.service" >/dev/null 2>&1; then
-        log INFO "Disabled ${svc}.service"
-        reload_systemd_daemon
-        return 0
-      fi
-      log WARN "Failed to disable ${svc}.service"
+    if disable_service "${svc}" "system" 2>/dev/null; then
+      log INFO "Disabled ${svc}"
     fi
   done
 
@@ -47,14 +50,27 @@ vt = 1
 
 [default_session]
 command = "tuigreet --time --remember --remember-session --cmd niri-session"
-user = "greeter"
+user = "${GREETER_USER}"
 EOF
 
-sudo mkdir -p /var/cache/tuigreet
-sudo chown -R greeter:greeter /var/cache/tuigreet
+  sudo mkdir -p /var/cache/tuigreet
+  sudo chown -R "${GREETER_USER}:${GREETER_USER}" /var/cache/tuigreet
 
-  log INFO "Configured greetd display manager"
+  log INFO "Configured greetd display manager (greeter: ${GREETER_USER})"
 }
+
+{{- if eq $distro "void" }}
+
+disable_conflicting_tty() {
+  log STEP "Disabling agetty-tty1 (greetd uses vt=1)"
+  if disable_service "agetty-tty1" "system" 2>/dev/null; then
+    log INFO "Disabled agetty-tty1"
+  else
+    log SKIP "agetty-tty1 not active"
+  fi
+}
+
+{{- end }}
 
 main() {
 
@@ -64,10 +80,14 @@ main() {
   disable_conflicting_dms
   configure_greetd
 
+  {{- if eq $distro "void" }}
+  disable_conflicting_tty
+  {{- end }}
+
   if ! enable_service "greetd" "system"; then
-    die "Failed : $LAST_ERROR"
+    die "Failed: $LAST_ERROR"
   else
-    log INFO "${COLOR_GREEN}greetd.service${COLOR_RESET} enabled"
+    log INFO "${COLOR_GREEN}greetd${COLOR_RESET} enabled"
   fi
 
   log INFO "greetd display manager configuration complete"

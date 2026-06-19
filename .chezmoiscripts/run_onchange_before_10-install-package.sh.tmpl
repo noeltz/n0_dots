@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# run_onchange_before_10-install-package.sh - Uninstall and install packages via paru
+# run_onchange_before_10-install-package.sh - Install/remove packages (cross-distro)
 #
 # Removes packages declared in .chezmoidata/packages.toml (uninstall + uninstall_force),
-# then installs the packages list. Skips already-installed and not-installed items.
-# Runs unattended (--noconfirm).
+# then installs the packages list. Package names are mapped to Void equivalents at
+# template-render time via .chezmoidata/void_map.toml and .chezmoidata/void_skip.toml.
+# Arch uses paru/pacman, Void uses xbps-install/xbps-remove.
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . -}}
+
+{{- $distro := .chezmoi.osRelease.id -}}
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -16,19 +19,62 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
+# --- Template-generated package arrays ---
+
 packages=()
 uninstall=()
 uninstall_force=()
+_raw_pkgs=()
+_void_skips=()
 
-{{ range .packages }}
-packages+=({{- . | quote -}})
-{{ end }}
-{{ range .uninstall }}
+{{- if eq $distro "void" }}
+# Void Linux: map package names and filter unavailable packages
+{{ range .packages -}}
+{{- $skip := index $.void_skip . -}}
+{{- if $skip -}}
+_void_skips+=({{- printf "%s|%s" . $skip | quote -}})
+{{- else -}}
+{{- $mapped := index $.void_map . -}}
+{{- if $mapped -}}
+_raw_pkgs+=({{- $mapped | quote -}})
+{{- else -}}
+_raw_pkgs+=({{- . | quote -}})
+{{- end -}}
+{{- end -}}
+{{- end }}
+
+# Extra Void-only packages (bluez-deprecated for legacy bluez tools)
+_raw_pkgs+=("bluez-deprecated")
+{{- else }}
+# Arch Linux: use package names directly
+{{ range .packages -}}
+_raw_pkgs+=({{- . | quote -}})
+{{- end }}
+{{- end }}
+
+# Uninstall lists (Arch-only — these packages don't exist on Void)
+{{ range .uninstall -}}
 uninstall+=({{- . | quote -}})
-{{ end }}
-{{ range .uninstall_force }}
+{{- end }}
+{{ range .uninstall_force -}}
 uninstall_force+=({{- . | quote -}})
-{{ end }}
+{{- end }}
+
+# Deduplicate packages (handles nerd-fonts-ttf appearing twice on Void)
+_dedup_packages() {
+  declare -A _seen=()
+  local _pkg
+  for _pkg in "${_raw_pkgs[@]}"; do
+    if [[ -z "${_seen[$_pkg]:-}" ]]; then
+      packages+=("$_pkg")
+      _seen[$_pkg]=1
+    fi
+  done
+}
+
+_dedup_packages
+
+# --- Package removal (Arch only) ---
 
 # Removes packages via paru with the given flags.
 #
@@ -81,16 +127,12 @@ _remove_packages() {
   return 0
 }
 
-main() {
-  if ! request_sudo; then
-    die "Failed to obtain sudo access"
-  fi
+# --- Arch Linux installation path ---
 
+_main_pacman() {
   if ! command -v paru &>/dev/null; then
     die "paru is not installed. run_once_before_00-install-aur-helper must run first."
   fi
-
-  print_box "Packages"
 
   log STEP "Syncing package databases"
   paru -Sy --noconfirm
@@ -106,7 +148,81 @@ main() {
   fi
 
   log STEP "Installing packages..."
-  paru -S --needed --noconfirm --sudoloop "${packages[@]}" || log WARN "Package installation failed."
+  paru -S --needed --noconfirm --sudoloop "${packages[@]}" || log WARN "Package installation had failures."
+}
+
+# --- Void Linux installation path ---
+
+_main_xbps() {
+  log STEP "Syncing package repositories"
+  sudo xbps-install -S
+
+  # Enable nonfree repo if needed (for spotify, chromium-widevine)
+  if ! xbps-query void-repo-nonfree &>/dev/null 2>&1; then
+    log STEP "Enabling nonfree repository"
+    sudo xbps-install -y void-repo-nonfree || log WARN "Failed to install void-repo-nonfree"
+    sudo xbps-install -S
+  fi
+
+  # Filter to packages not yet installed
+  local -a to_install=()
+  local pkg
+  for pkg in "${packages[@]}"; do
+    if xbps-query "$pkg" >/dev/null 2>&1; then
+      log SKIP "${COLOR_GREEN}${pkg}${COLOR_RESET} exists"
+    else
+      to_install+=("$pkg")
+    fi
+  done
+
+  if [[ ${#to_install[@]} -eq 0 ]]; then
+    log INFO "All packages already installed"
+    return 0
+  fi
+
+  log STEP "Installing packages..."
+  if ! sudo xbps-install -y "${to_install[@]}"; then
+    log WARN "Package installation had failures. Attempting individual installs..."
+    for pkg in "${to_install[@]}"; do
+      if ! sudo xbps-install -y "$pkg" 2>/dev/null; then
+        log WARN "Failed to install: ${COLOR_YELLOW}${pkg}${COLOR_RESET}"
+      fi
+    done
+  fi
+}
+
+# --- Main ---
+
+main() {
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
+  fi
+
+  print_box "Packages"
+
+  # Log skipped packages (Void only)
+  local skip_entry
+  for skip_entry in "${_void_skips[@]}"; do
+    local skip_pkg="${skip_entry%%|*}"
+    local skip_reason="${skip_entry#*|}"
+    log SKIP "${COLOR_GREEN}${skip_pkg}${COLOR_RESET} — ${skip_reason}"
+  done
+
+  _source_platform
+  local manager
+  manager=$(get_pkg_manager)
+
+  case "$manager" in
+  pacman)
+    _main_pacman
+    ;;
+  xbps)
+    _main_xbps
+    ;;
+  *)
+    die "Unsupported package manager: $manager"
+    ;;
+  esac
 }
 
 main "$@"

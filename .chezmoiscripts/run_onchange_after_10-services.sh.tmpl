@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# run_onchange_after_10-systemd-service.sh - Configure systemd services
+# run_onchange_after_10-services.sh - Configure system/user services (cross-init)
 #
-# Wires user services into the niri session (add-wants niri.service), then
-# disables and enables the declared system/user services. Services are declared
-# in .chezmoidata/services.toml (niri_wants, enable_system, disable_system,
-# enable_user, disable_user). All operations are idempotent via lib helpers;
-# individual failures are logged as warnings.
+# Wires user services into the niri session (systemd only), then disables
+# and enables the declared system/user services. Services are declared in
+# .chezmoidata/services.toml (niri_wants, enable_system, disable_system,
+# enable_user, disable_user). On systemd: uses systemctl. On runit: uses
+# sv symlinks. All operations are idempotent via lib helpers.
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . -}}
+
+{{- $distro := .chezmoi.osRelease.id -}}
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -23,8 +25,10 @@ main() {
     die "Failed to obtain sudo access"
   fi
 
-  print_box "Systemd Services"
+  print_box "System Services"
 
+  {{- if eq $distro "arch" }}
+  # --- systemd: wire user services into niri session ---
   log STEP "Wiring user services into niri.service"
   systemctl --user daemon-reload
   {{ range .niri_wants -}}
@@ -35,6 +39,10 @@ main() {
   fi
   {{ end -}}
   systemctl --user daemon-reload
+  {{- else if eq $distro "void" }}
+  # --- runit: niri session wiring is not needed (no systemd user manager) ---
+  log SKIP "User service wiring skipped (runit — no systemd user manager)"
+  {{- end }}
 
   log STEP "Disabling services"
   {{ range .disable_system -}}
