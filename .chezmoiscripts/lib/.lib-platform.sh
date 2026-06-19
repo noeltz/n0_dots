@@ -14,6 +14,7 @@ export LAST_ERROR="${LAST_ERROR:-}"
 # Detects the Linux distribution.
 #
 # Uses /etc/os-release to determine the distribution ID.
+# Handles both quoted (ID="void") and unquoted (ID=arch) formats.
 # Returns lowercase distribution name.
 #
 # Outputs:
@@ -25,7 +26,7 @@ detect_distro() {
 
   if [[ -f /etc/os-release ]]; then
     local id
-    id=$(grep -oP '^ID=\K\w+' /etc/os-release 2>/dev/null | tr '[:upper:]' '[:lower:]')
+    id=$(awk -F= '/^ID=/{gsub(/["'"'"']/,"",$2); print tolower($2); exit}' /etc/os-release 2>/dev/null)
     if [[ -n "$id" ]]; then
       printf '%s\n' "$id"
       return 0
