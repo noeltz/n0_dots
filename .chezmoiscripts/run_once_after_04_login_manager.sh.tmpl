@@ -30,17 +30,53 @@ if ! keep_sudo_alive; then
   die "Failed to keep sudo alive"
 fi
 
+# Checks if a runit service is enabled (symlink exists in /var/service).
+#
+# Arguments:
+#   $1 - Service name
+# Returns:
+#   0 if enabled, 1 if not
+_is_runit_service_enabled() {
+  [[ -L "/var/service/${1}" ]]
+}
+
+# Checks if a systemd service is enabled.
+#
+# Arguments:
+#   $1 - Service name
+# Returns:
+#   0 if enabled, 1 if not
+_is_systemd_service_enabled() {
+  systemctl is-enabled "${1}" >/dev/null 2>&1
+}
+
 disable_conflicting_dms() {
   local -r other_dms=(sddm gdm gdm3 lightdm lxdm emptty)
 
-  local svc
+  local svc found=0
   for svc in "${other_dms[@]}"; do
-    if disable_service "${svc}" "system" 2>/dev/null; then
-      log INFO "Disabled ${svc}"
+    local is_on=0
+
+    if command -v sv &>/dev/null; then
+      _is_runit_service_enabled "$svc" && is_on=1
+    elif command -v systemctl &>/dev/null; then
+      _is_systemd_service_enabled "$svc" && is_on=1
+    fi
+
+    if [[ "$is_on" -eq 1 ]]; then
+      log INFO "Disabling conflicting display manager: ${COLOR_CYAN}${svc}${COLOR_RESET}"
+      if disable_service "$svc" "system"; then
+        log INFO "Disabled ${svc}"
+        found=1
+      else
+        log WARN "Failed to disable ${svc}: $LAST_ERROR"
+      fi
     fi
   done
 
-  log SKIP "No conflicting display managers found"
+  if [[ "$found" -eq 0 ]]; then
+    log SKIP "No conflicting display managers found"
+  fi
 }
 
 configure_greetd() {
@@ -63,8 +99,12 @@ EOF
 
 disable_conflicting_tty() {
   log STEP "Disabling agetty-tty1 (greetd uses vt=1)"
-  if disable_service "agetty-tty1" "system" 2>/dev/null; then
-    log INFO "Disabled agetty-tty1"
+  if _is_runit_service_enabled "agetty-tty1"; then
+    if disable_service "agetty-tty1" "system"; then
+      log INFO "Disabled agetty-tty1"
+    else
+      log WARN "Failed to disable agetty-tty1: $LAST_ERROR"
+    fi
   else
     log SKIP "agetty-tty1 not active"
   fi
@@ -89,6 +129,11 @@ main() {
   else
     log INFO "${COLOR_GREEN}greetd${COLOR_RESET} enabled"
   fi
+
+  {{- if eq $distro "void" }}
+  log INFO "Note: If you see 'elogind already running' messages from greetd,"
+  log INFO "      this is a known Void Linux issue and is harmless."
+  {{- end }}
 
   log INFO "greetd display manager configuration complete"
 }

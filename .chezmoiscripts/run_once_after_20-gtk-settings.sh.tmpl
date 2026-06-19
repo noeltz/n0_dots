@@ -17,6 +17,12 @@ source "$LIB_DIR/.lib-common.sh"
 
 main() {
   print_box "GTK Settings"
+
+  if ! command_exists gsettings; then
+    log SKIP "gsettings not found — skipping GTK settings"
+    return 0
+  fi
+
   log STEP "Applying GTK interface settings"
 
   {{ range $key, $val := .gtk -}}

@@ -16,6 +16,17 @@ readonly PKG_DIR="{{- .chezmoi.sourceDir -}}/assets/install"
 
 main() {
   print_box "VSCode Theme"
+
+  if ! command_exists codium; then
+    if ! command_exists code-oss; then
+      log SKIP "codium/code-oss not found — skipping VSCode theme install"
+      return 0
+    fi
+    log STEP "Installing VSCode matugen theme (code-oss)"
+    code-oss --install-extension "$PKG_DIR/matugen-vscode-1.1.0.vsix" && log INFO "Theme installed"
+    return 0
+  fi
+
   log STEP "Installing VSCode matugen theme"
   codium --install-extension "$PKG_DIR/matugen-vscode-1.1.0.vsix" && log INFO "Theme installed"
 }
