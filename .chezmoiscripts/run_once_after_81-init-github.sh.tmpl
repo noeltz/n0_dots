@@ -190,6 +190,9 @@ _configure_git_client() {
 main() {
   _require_commands
 
+  # Ensure ~/.local/bin is in PATH (pass-cli is installed there on Void/non-Arch)
+  export PATH="$HOME/.local/bin:$PATH"
+
   print_box "GitHub CLI & Git"
 
   if _gh_authenticated; then
