@@ -23,6 +23,7 @@ packages = [
   "ddcutil",
   "devtools",
   "downgrade",
+  "elogind",
   "eza",
   "fastfetch",
   "fd",
