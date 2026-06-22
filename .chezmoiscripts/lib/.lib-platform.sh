@@ -25,12 +25,26 @@ detect_distro() {
   LAST_ERROR=""
 
   if [[ -f /etc/os-release ]]; then
-    local id
+    local id id_like
     id=$(awk -F= '/^ID=/{gsub(/["'"'"']/,"",$2); print tolower($2); exit}' /etc/os-release 2>/dev/null)
-    if [[ -n "$id" ]]; then
-      printf '%s\n' "$id"
-      return 0
-    fi
+
+    case "$id" in
+      arch|void)
+        printf '%s\n' "$id"
+        return 0
+        ;;
+    esac
+
+    id_like=$(awk -F= '/^ID_LIKE=/{gsub(/["'"'"']/,"",$2); print tolower($2); exit}' /etc/os-release 2>/dev/null)
+    case "$id_like" in
+      arch|void)
+        printf '%s\n' "$id_like"
+        return 0
+        ;;
+    esac
+
+    printf '%s\n' "$id"
+    return 0
   fi
 
   LAST_ERROR="Failed to detect distribution from /etc/os-release"

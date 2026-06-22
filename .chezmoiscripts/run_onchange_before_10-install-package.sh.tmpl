@@ -10,6 +10,14 @@
 {{ template "run_onchange_hash" . -}}
 
 {{- $distro := .chezmoi.osRelease.id -}}
+{{- if not (or (eq $distro "arch") (eq $distro "void")) -}}
+  {{- $idLike := .chezmoi.osRelease.id_like | default "" -}}
+  {{- if contains $idLike "void" -}}
+    {{- $distro = "void" -}}
+  {{- else if contains $idLike "arch" -}}
+    {{- $distro = "arch" -}}
+  {{- end -}}
+{{- end -}}
 
 set -euo pipefail
 shopt -s nullglob globstar

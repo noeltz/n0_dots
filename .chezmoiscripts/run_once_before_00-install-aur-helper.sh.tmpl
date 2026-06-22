@@ -7,6 +7,14 @@
 # Exit codes: 0 (success), 1 (failure)
 
 {{- $distro := .chezmoi.osRelease.id -}}
+{{- if not (or (eq $distro "arch") (eq $distro "void")) -}}
+  {{- $idLike := .chezmoi.osRelease.id_like | default "" -}}
+  {{- if contains $idLike "void" -}}
+    {{- $distro = "void" -}}
+  {{- else if contains $idLike "arch" -}}
+    {{- $distro = "arch" -}}
+  {{- end -}}
+{{- end -}}
 
 set -euo pipefail
 shopt -s nullglob globstar
