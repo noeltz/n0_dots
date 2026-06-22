@@ -13,7 +13,10 @@
 # Exit codes:
 #   0 (success), 1 (failure)
 
-{{- $idLike := .chezmoi.osRelease.id_like | default "" -}}
+{{- $idLike := "" -}}
+{{- if hasKey .chezmoi.osRelease "id_like" -}}
+  {{- $idLike = .chezmoi.osRelease.id_like -}}
+{{- end -}}
 {{- if or (eq .chezmoi.osRelease.id "void") (contains $idLike "void") }}
 # Void Linux: Plymouth disable is not applicable (uses dracut, not mkinitcpio)
 echo "[SKIP] Plymouth disable not applicable on Void Linux"
