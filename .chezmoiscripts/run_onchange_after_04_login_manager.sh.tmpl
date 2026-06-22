@@ -114,10 +114,17 @@ enable_lidm() {
   local -r link="/var/service/lidm"
   if [[ -L "$link" ]]; then
     log SKIP "lidm already enabled"
-  elif sudo ln -s /etc/sv/lidm "$link"; then
+    return 0
+  fi
+
+  # Create down file BEFORE the symlink so runsv sees "administratively down"
+  # and does NOT start the service immediately.
+  sudo touch /etc/sv/lidm/down
+
+  if sudo ln -s /etc/sv/lidm "$link"; then
+    # Remove the down file so lidm starts on next boot.
+    sudo rm /etc/sv/lidm/down
     log INFO "${COLOR_GREEN}lidm${COLOR_RESET} enabled (will start on next boot)"
-    sleep 1
-    sudo sv down lidm 2>/dev/null || true
   else
     LAST_ERROR="Failed to create lidm symlink"
     die "Failed: $LAST_ERROR"
