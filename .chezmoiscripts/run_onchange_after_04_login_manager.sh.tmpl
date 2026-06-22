@@ -98,15 +98,21 @@ EOF
 }
 
 disable_conflicting_tty() {
-  log STEP "Disabling agetty-tty1 (lidm uses vt=1)"
-  if _is_runit_service_enabled "agetty-tty1"; then
-    if sudo rm -f "/var/service/agetty-tty1"; then
-      log INFO "Disabled agetty-tty1"
+  log STEP "Disabling getty services on active VTs"
+  local disabled=0
+  for link in /var/service/agetty-* /var/service/tty*; do
+    [[ -L "$link" ]] || continue
+    local name
+    name="$(basename "$link")"
+    if sudo rm -f "$link"; then
+      log INFO "Disabled $name"
+      disabled=1
     else
-      log WARN "Failed to disable agetty-tty1: $LAST_ERROR"
+      log WARN "Failed to disable $name: $LAST_ERROR"
     fi
-  else
-    log SKIP "agetty-tty1 not active"
+  done
+  if [[ "$disabled" -eq 0 ]]; then
+    log SKIP "No getty services were active"
   fi
 }
 
