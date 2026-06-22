@@ -116,6 +116,8 @@ enable_lidm() {
     log SKIP "lidm already enabled"
   elif sudo ln -s /etc/sv/lidm "$link"; then
     log INFO "${COLOR_GREEN}lidm${COLOR_RESET} enabled (will start on next boot)"
+    sleep 1
+    sudo sv down lidm 2>/dev/null || true
   else
     LAST_ERROR="Failed to create lidm symlink"
     die "Failed: $LAST_ERROR"
