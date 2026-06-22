@@ -14,7 +14,6 @@
 "greetd" = "Use lidm instead on Void"
 "greetd-tuigreet" = "Use lidm instead on Void"
 "helium-browser-bin" = "AUR-only Chromium-based browser"
-"noctalia-git" = "AUR-only"
 "nirius" = "Custom/AUR package"
 "pacman-contrib" = "Arch-specific helper scripts"
 "pacutils" = "Arch-specific libalpm utility"

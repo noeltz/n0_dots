@@ -21,3 +21,4 @@
 "ttf-cascadia-code-nerd" = "nerd-fonts-ttf"
 "ttf-jetbrains-mono-nerd" = "nerd-fonts-ttf"  # dedup: same as above
 "ttf-roboto" = "fonts-roboto-ttf"
+"noctalia-git" = "noctalia"

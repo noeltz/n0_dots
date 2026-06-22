@@ -106,6 +106,17 @@ main() {
     log SKIP "Nonfree repository already enabled"
   fi
 
+  # --- Noctalia repository (Void build of Noctalia system monitor) ---
+  local noctalia_repo_file="/etc/xbps.d/10-noctalia.conf"
+  if [[ ! -f "$noctalia_repo_file" ]]; then
+    log STEP "Adding Noctalia XBPS repository"
+    echo "repository=https://universalrepository.pages.dev/void" | sudo tee "$noctalia_repo_file" >/dev/null
+    sudo xbps-install -S
+    log INFO "Noctalia repository added."
+  else
+    log SKIP "Noctalia repository already configured"
+  fi
+
   log INFO "Void Linux bootstrap complete."
 }
 
