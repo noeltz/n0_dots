@@ -98,21 +98,15 @@ EOF
 }
 
 disable_conflicting_tty() {
-  log STEP "Disabling getty services on active VTs"
-  local disabled=0
-  for link in /var/service/agetty-* /var/service/tty*; do
-    [[ -L "$link" ]] || continue
-    local name
-    name="$(basename "$link")"
-    if sudo rm -f "$link"; then
-      log INFO "Disabled $name"
-      disabled=1
+  log STEP "Disabling agetty-tty1 (lidm uses vt=1)"
+  if [[ -L "/var/service/agetty-tty1" ]]; then
+    if sudo rm -f "/var/service/agetty-tty1"; then
+      log INFO "Disabled agetty-tty1"
     else
-      log WARN "Failed to disable $name: $LAST_ERROR"
+      log WARN "Failed to disable agetty-tty1: $LAST_ERROR"
     fi
-  done
-  if [[ "$disabled" -eq 0 ]]; then
-    log SKIP "No getty services were active"
+  else
+    log SKIP "agetty-tty1 not active"
   fi
 }
 
@@ -139,6 +133,33 @@ enable_elogind() {
     log INFO "${COLOR_GREEN}elogind${COLOR_RESET} enabled (will start on next boot)"
   else
     log WARN "Failed to enable elogind: $LAST_ERROR"
+  fi
+}
+
+configure_lidm_pam() {
+  local -r pam_file="/etc/pam.d/lidm"
+  if [[ ! -f "$pam_file" ]]; then
+    log INFO "Creating lidm PAM config"
+    write_system_config "$pam_file" <<'EOF' || { log WARN "Failed to create $pam_file"; return 1; }
+auth       sufficient  pam_rootok.so
+auth       required    pam_unix.so
+account    required    pam_unix.so
+password   required    pam_unix.so
+session    required    pam_unix.so
+session    optional    pam_elogind.so
+EOF
+    log INFO "Created lidm PAM config with elogind support"
+  elif ! grep -q 'pam_elogind' "$pam_file" 2>/dev/null; then
+    log STEP "Adding pam_elogind.so to lidm PAM config"
+    if ! grep -q '^session' "$pam_file" 2>/dev/null; then
+      echo 'session    optional    pam_elogind.so' | sudo tee -a "$pam_file" >/dev/null
+      log INFO "Added pam_elogind.so to $pam_file"
+    else
+      sudo sed -i '/^session.*pam_unix\.so/a session    optional    pam_elogind.so' "$pam_file" 2>/dev/null
+      log INFO "Added pam_elogind.so to $pam_file"
+    fi
+  else
+    log SKIP "lidm PAM config already has elogind"
   fi
 }
 
@@ -184,6 +205,7 @@ main() {
 
   {{- if eq $distro "void" }}
   configure_lidm
+  configure_lidm_pam
   disable_conflicting_tty
   enable_lidm
   enable_elogind
