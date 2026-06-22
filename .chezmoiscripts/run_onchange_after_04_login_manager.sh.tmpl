@@ -91,7 +91,7 @@ configure_lidm() {
   write_system_config "$config_file" <<EOF || die "Failed to write lidm config: $LAST_ERROR"
 # /etc/lidm.ini
 [greeter]
-cmd = niri-session
+cmd = niri
 EOF
 
   log INFO "Configured lidm display manager"
@@ -125,6 +125,17 @@ enable_lidm() {
   else
     LAST_ERROR="Failed to create lidm symlink"
     die "Failed: $LAST_ERROR"
+  fi
+}
+
+enable_elogind() {
+  local -r link="/var/service/elogind"
+  if [[ -L "$link" ]]; then
+    log SKIP "elogind already enabled"
+  elif sudo ln -s /etc/sv/elogind "$link"; then
+    log INFO "${COLOR_GREEN}elogind${COLOR_RESET} enabled (will start on next boot)"
+  else
+    log WARN "Failed to enable elogind: $LAST_ERROR"
   fi
 }
 
@@ -172,6 +183,7 @@ main() {
   configure_lidm
   disable_conflicting_tty
   enable_lidm
+  enable_elogind
   {{- else }}
   configure_greetd
   enable_greetd
