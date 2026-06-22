@@ -35,25 +35,32 @@ _is_systemd_service_enabled() {
 disable_conflicting_dms() {
   local -r other_dms=(sddm gdm gdm3 lightdm lxdm emptty greetd)
   local svc found=0
-  for svc in "${other_dms[@]}"; do
-    local is_on=0
 
-    if command -v sv &>/dev/null; then
-      _is_runit_service_enabled "$svc" && is_on=1
-    elif command -v systemctl &>/dev/null; then
-      _is_systemd_service_enabled "$svc" && is_on=1
-    fi
-
-    if [[ "$is_on" -eq 1 ]]; then
-      log INFO "Disabling conflicting display manager: ${COLOR_CYAN}${svc}${COLOR_RESET}"
-      if disable_service "$svc" "system"; then
-        log INFO "Disabled ${svc}"
-        found=1
-      else
-        log WARN "Failed to disable ${svc}: $LAST_ERROR"
+  if command -v sv &>/dev/null; then
+    for svc in "${other_dms[@]}"; do
+      if _is_runit_service_enabled "$svc"; then
+        log INFO "Disabling conflicting display manager: ${COLOR_CYAN}${svc}${COLOR_RESET}"
+        if sudo rm -f "/var/service/${svc}"; then
+          log INFO "Disabled ${svc}"
+          found=1
+        else
+          log WARN "Failed to disable ${svc}: $LAST_ERROR"
+        fi
       fi
-    fi
-  done
+    done
+  elif command -v systemctl &>/dev/null; then
+    for svc in "${other_dms[@]}"; do
+      if _is_systemd_service_enabled "$svc"; then
+        log INFO "Disabling conflicting display manager: ${COLOR_CYAN}${svc}${COLOR_RESET}"
+        if disable_service "$svc" "system"; then
+          log INFO "Disabled ${svc}"
+          found=1
+        else
+          log WARN "Failed to disable ${svc}: $LAST_ERROR"
+        fi
+      fi
+    done
+  fi
 
   if [[ "$found" -eq 0 ]]; then
     log SKIP "No conflicting display managers found"
@@ -82,7 +89,7 @@ EOF
 disable_conflicting_tty() {
   log STEP "Disabling agetty-tty1 (lidm uses vt=1)"
   if _is_runit_service_enabled "agetty-tty1"; then
-    if disable_service "agetty-tty1" "system"; then
+    if sudo rm -f "/var/service/agetty-tty1"; then
       log INFO "Disabled agetty-tty1"
     else
       log WARN "Failed to disable agetty-tty1: $LAST_ERROR"
