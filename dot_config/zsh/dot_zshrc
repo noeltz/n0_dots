@@ -9,6 +9,15 @@ if [ -d "$HOME/.config/environment.d/" ]; then
   set +a
 fi
 
+# Ensure XDG_RUNTIME_DIR exists (on Void without elogind, it isn't created at login)
+if [[ -n "$XDG_RUNTIME_DIR" ]] && [[ ! -d "$XDG_RUNTIME_DIR" ]]; then
+  if ! mkdir -p "$XDG_RUNTIME_DIR" 2>/dev/null; then
+    export XDG_RUNTIME_DIR="${TMPDIR:-/tmp}/runtime-${USER}"
+    mkdir -p "$XDG_RUNTIME_DIR"
+  fi
+  chmod 700 "$XDG_RUNTIME_DIR"
+fi
+
 if [[ -f "$ZDOTDIR/settings.zsh" ]]; then
   source $ZDOTDIR/settings.zsh
 fi
