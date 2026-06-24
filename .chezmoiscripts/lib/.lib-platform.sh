@@ -43,6 +43,15 @@ detect_distro() {
         ;;
     esac
 
+    # Fallback: check package manager presence for unknown distros
+    if command -v xbps-install &>/dev/null; then
+      printf 'void\n'
+      return 0
+    elif command -v pacman &>/dev/null; then
+      printf 'arch\n'
+      return 0
+    fi
+
     printf '%s\n' "$id"
     return 0
   fi

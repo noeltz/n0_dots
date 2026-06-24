@@ -18,6 +18,10 @@
     {{- $distro = "void" -}}
   {{- else if contains $idLike "arch" -}}
     {{- $distro = "arch" -}}
+  {{- else if lookPath "xbps-install" -}}
+    {{- $distro = "void" -}}
+  {{- else if lookPath "pacman" -}}
+    {{- $distro = "arch" -}}
   {{- end -}}
 {{- end -}}
 
