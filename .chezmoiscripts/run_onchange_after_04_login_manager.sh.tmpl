@@ -121,18 +121,29 @@ enable_lidm() {
     return 0
   fi
 
-  # Create down file BEFORE the symlink so runsv sees "administratively down"
-  # and does NOT start the service immediately.
+  # Create down file so runsv does NOT start the service immediately.
   sudo touch /etc/sv/lidm/down
 
-  if sudo ln -s /etc/sv/lidm "$link"; then
-    # Remove the down file so lidm starts on next boot.
-    sudo rm /etc/sv/lidm/down
-    log INFO "${COLOR_GREEN}lidm${COLOR_RESET} enabled (will start on next boot)"
-  else
+  if ! sudo ln -s /etc/sv/lidm "$link"; then
     LAST_ERROR="Failed to create lidm symlink"
     die "Failed: $LAST_ERROR"
   fi
+
+  # The down file stays in place during the script run.
+  # rc.local removes it on the next boot before runsvdir starts,
+  # so lidm starts normally on reboot.
+  local -r rc_local="/etc/rc.local"
+  local -r rm_cmd="[ -f /etc/sv/lidm/down ] && rm -f /etc/sv/lidm/down"
+  if [[ -f "$rc_local" ]]; then
+    if ! grep -qF "lidm/down" "$rc_local" 2>/dev/null; then
+      printf '%s\n' "$rm_cmd" | sudo tee -a "$rc_local" >/dev/null
+    fi
+  else
+    printf '#!/bin/sh\n%s\n' "$rm_cmd" | sudo tee "$rc_local" >/dev/null
+    sudo chmod 755 "$rc_local"
+  fi
+
+  log INFO "${COLOR_GREEN}lidm${COLOR_RESET} enabled (will start on next boot)"
 }
 
 enable_elogind() {
