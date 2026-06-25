@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # run_onchange_before_10-install-package.sh - Install/remove packages (cross-distro)
 #
-# Removes packages declared in .chezmoidata/packages.toml (uninstall + uninstall_force),
-# then installs the packages list. Package names are mapped to Void equivalents at
-# template-render time via .chezmoidata/void_map.toml and .chezmoidata/void_skip.toml.
+# Installs packages from separate per-distro lists:
+#   .chezmoidata/packages_arch.toml (Arch Linux)
+#   .chezmoidata/packages_void.toml (Void Linux)
 # Arch uses paru/pacman, Void uses xbps-install/xbps-remove.
 # Exit codes: 0 (success), 1 (failure)
 
@@ -39,53 +39,25 @@ source "$LIB_DIR/.lib-common.sh"
 packages=()
 uninstall=()
 uninstall_force=()
-_raw_pkgs=()
-_void_skips=()
 
 {{- if eq $distro "void" }}
-# Void Linux: map package names and filter unavailable packages
-{{ range .packages }}
-{{- $skip := index $.void_skip . }}
-{{- $mapped := index $.void_map . }}
-{{- if $skip }}
-_void_skips+=({{ printf "%s|%s" . $skip | quote }})
-{{- else if $mapped }}
-_raw_pkgs+=({{ $mapped | quote }})
-{{- else }}
-_raw_pkgs+=({{ . | quote }})
-{{- end }}
+{{ range .packages_void.packages }}
+packages+=({{ . | quote }})
 {{ end }}
-
-# Extra Void-only packages (bluez-deprecated for legacy bluez tools)
-_raw_pkgs+=("bluez-deprecated")
 {{- else }}
-# Arch Linux: use package names directly
-{{ range .packages }}
-_raw_pkgs+=({{ . | quote }})
+{{ range .packages_arch.packages }}
+packages+=({{ . | quote }})
 {{ end }}
 {{- end }}
 
-# Uninstall lists (Arch-only — these packages don't exist on Void)
-{{ range .uninstall }}
+{{- if eq $distro "arch" }}
+{{ range .packages_arch.uninstall }}
 uninstall+=({{ . | quote }})
 {{ end }}
-{{ range .uninstall_force }}
+{{ range .packages_arch.uninstall_force }}
 uninstall_force+=({{ . | quote }})
 {{ end }}
-
-# Deduplicate packages (handles nerd-fonts-ttf appearing twice on Void)
-_dedup_packages() {
-  declare -A _seen=()
-  local _pkg
-  for _pkg in "${_raw_pkgs[@]}"; do
-    if [[ -z "${_seen[$_pkg]:-}" ]]; then
-      packages+=("$_pkg")
-      _seen[$_pkg]=1
-    fi
-  done
-}
-
-_dedup_packages
+{{- end }}
 
 # --- Package removal (Arch only) ---
 
@@ -212,14 +184,6 @@ main() {
   fi
 
   print_box "Packages"
-
-  # Log skipped packages (Void only)
-  local skip_entry
-  for skip_entry in "${_void_skips[@]}"; do
-    local skip_pkg="${skip_entry%%|*}"
-    local skip_reason="${skip_entry#*|}"
-    log SKIP "${COLOR_GREEN}${skip_pkg}${COLOR_RESET} — ${skip_reason}"
-  done
 
   local manager
   manager=$(get_pkg_manager)

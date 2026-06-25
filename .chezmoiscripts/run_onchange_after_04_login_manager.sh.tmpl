@@ -85,19 +85,6 @@ disable_conflicting_dms() {
 
 readonly GREETD_CONFIG_FILE="/etc/greetd/config.toml"
 
-enable_elogind() {
-  local -r sv_dir="/etc/sv/elogind"
-  local -r link="/var/service/elogind"
-  if [[ -L "$link" ]]; then
-    log SKIP "elogind already enabled"
-  elif [[ ! -d "$sv_dir" ]]; then
-    log WARN "elogind service directory not found at $sv_dir (package may not be installed)"
-  elif sudo ln -s "$sv_dir" "$link"; then
-    log INFO "${COLOR_GREEN}elogind${COLOR_RESET} enabled (will start on next boot)"
-  else
-    log WARN "Failed to enable elogind: $LAST_ERROR"
-  fi
-}
 
 enable_greetd() {
   local -r link="/var/service/greetd"
@@ -165,10 +152,6 @@ main() {
 
   configure_greetd
   enable_greetd
-
-  {{- if eq $distro "void" }}
-  enable_elogind
-  {{- end }}
 
   log INFO "Display manager configuration complete"
 }
