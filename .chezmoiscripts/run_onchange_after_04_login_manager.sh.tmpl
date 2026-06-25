@@ -49,7 +49,7 @@ _is_systemd_service_enabled() {
 }
 
 disable_conflicting_dms() {
-  local -r other_dms=(sddm gdm gdm3 lightdm lxdm emptty greetd lidm)
+  local -r other_dms=(sddm gdm gdm3 lightdm lxdm emptty lidm)
   local svc found=0
 
   if command -v sv &>/dev/null; then
