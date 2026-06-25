@@ -1,3 +1,4 @@
+[packages_void]
 packages = [
   "accountsservice",
   "alsa-pipewire",
