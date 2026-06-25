@@ -10,7 +10,10 @@
 # After a successful login, configures the git client: user.name (GitHub display
 # name or login), a privacy-preserving noreply user.email derived from the login,
 # and init.defaultBranch.
-# Exit codes: 0 (success), 1 (failure)
+# When Proton Pass CLI is unavailable (or token login fails), prompts the user to
+# either skip the git workflow or fall back to the OAuth device flow. Non-fatal:
+# any auth failure logs a warning and lets 'chezmoi init' continue.
+# Exit codes: 0 (success or gracefully skipped)
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -136,6 +139,32 @@ _login_device_flow() {
   _setup_git_credentials
 }
 
+# Offers a choice between skipping the git workflow and the OAuth device flow.
+#
+# Used when Proton Pass CLI is unavailable or the token login fails. Defaults to
+# skipping so a non-interactive 'chezmoi init' (no TTY) completes; answering 'n'
+# triggers the interactive device flow. A failed device flow also skips.
+#
+# Globals:
+#   LAST_ERROR - Set on failure
+# Returns:
+#   0 if authenticated via device flow (continue to git config), 1 if skipped
+_device_flow_or_skip() {
+  if confirm "Proton Pass CLI unavailable. Skip GitHub/git setup for now? (n = use device flow)" "y"; then
+    log WARN "Skipping GitHub CLI and git client setup. Re-run 'chezmoi init' later to retry."
+    return 1
+  fi
+
+  log STEP "Starting OAuth device flow"
+  if ! _login_device_flow; then
+    log WARN "Device flow login failed: $LAST_ERROR. Skipping git client setup."
+    return 1
+  fi
+
+  log INFO "Authenticated via device flow"
+  return 0
+}
+
 # Retrieves the GitHub account login (username).
 #
 # Outputs:
@@ -202,16 +231,15 @@ main() {
 
     if _pass_cli_ready; then
       log INFO "pass-cli available; fetching token from vault '${PASS_VAULT}'"
-      if ! _login_with_token; then
-        die "Token login failed: $LAST_ERROR"
+      if _login_with_token; then
+        log INFO "Authenticated via pass-cli token"
+      else
+        log WARN "Token login failed: $LAST_ERROR"
+        _device_flow_or_skip || return 0
       fi
-      log INFO "Authenticated via pass-cli token"
     else
-      log INFO "pass-cli unavailable or not logged in; starting device flow"
-      if ! _login_device_flow; then
-        die "Device flow login failed: $LAST_ERROR"
-      fi
-      log INFO "Authenticated via device flow"
+      log WARN "pass-cli unavailable or not logged in (Proton login failed or was skipped)"
+      _device_flow_or_skip || return 0
     fi
   fi
 

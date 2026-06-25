@@ -3,7 +3,9 @@
 #
 # Installs or updates the Proton Pass CLI via the official installer script,
 # then performs an interactive login if not already authenticated.
-# Exit codes: 0 (success), 1 (failure)
+# Non-fatal: install or login failures log a warning and let 'chezmoi init'
+# continue, so a temporarily unavailable Proton login does not block setup.
+# Exit codes: 0 (always; failures degrade gracefully)
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -97,20 +99,22 @@ main() {
 
   log STEP "Installing / updating $CMD_NAME"
   if ! _install; then
-    die "$LAST_ERROR"
+    log WARN "$LAST_ERROR. Skipping $CMD_NAME setup - you can install it manually later."
+    return 0
   fi
   log INFO "$CMD_NAME installed"
 
   log STEP "Checking login status"
   if _is_logged_in; then
     log SKIP "Already logged in"
+    log INFO "Setup complete. You can now use '$CMD_NAME'."
   elif ! _login; then
-    die "$LAST_ERROR. Try '$CMD_NAME login --interactive' manually."
+    log WARN "$LAST_ERROR. You can run '$CMD_NAME login --interactive' manually later."
+    log WARN "Continuing without Proton Pass CLI - GitHub/git setup will offer alternatives."
   else
     log INFO "Login successful"
+    log INFO "Setup complete. You can now use '$CMD_NAME'."
   fi
-
-  log INFO "Setup complete. You can now use '$CMD_NAME'."
 }
 
 main "$@"
