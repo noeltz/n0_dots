@@ -8,7 +8,6 @@
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . -}}
-{{- $distro := .chezmoi.osRelease.id -}}
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -89,9 +88,19 @@ if [ -d "$HOME/.config/environment.d/" ]; then
     done
 fi
 EOF
-{{- end }}
-
 sudo chmod +x /etc/profile.d/xdg-environment.sh
+
+sudo tee /etc/profile.d/xdg-path.sh > /dev/null <<'EOF'
+# Add XDG_BIN_HOME to PATH if it exists
+if [ -d "${XDG_BIN_HOME:=$HOME/.local/bin}" ]; then
+    case ":$PATH:" in
+        *:"$XDG_BIN_HOME":*) ;;
+        *) export PATH="$XDG_BIN_HOME:$PATH" ;;
+    esac
+fi
+EOF
+sudo chmod +x /etc/profile.d/xdg-path.sh
+{{- end }}
 
   {{ range .disable_autostart -}}
   entries+=({{- . | quote -}})
