@@ -15,6 +15,7 @@
 
 // Productivity & Shell
 spawn-sh-at-startup "reload-portal.sh"
+spawn-sh-at-startup "dbus-launch" "--exit-with-session"
 spawn-sh-at-startup "noctalia"
 
 // Clipboard Management
