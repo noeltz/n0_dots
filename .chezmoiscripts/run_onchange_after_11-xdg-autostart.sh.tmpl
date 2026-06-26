@@ -79,6 +79,19 @@ _disable_autostart_entry() {
 main() {
   local -a entries=()
 
+{{- if eq $distro "void" }}
+sudo tee /etc/profile.d/xdg-environment.sh > /dev/null <<'EOF'
+# Source environment files from ~/.config/environment.d/
+if [ -d "$HOME/.config/environment.d/" ]; then
+    for file in "$HOME/.config/environment.d/"*.conf; do
+        [ -f "$file" ] && . "$file"
+    done
+fi
+EOF
+{{- end }}
+
+sudo chmod +x /etc/profile.d/xdg-environment.sh
+
   {{ range .disable_autostart -}}
   entries+=({{- . | quote -}})
   {{ end }}
