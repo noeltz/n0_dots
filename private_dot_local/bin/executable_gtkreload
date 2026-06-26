@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Start user D-Bus session if not already running
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+    eval "$(dbus-launch --sh-syntax)"
+fi
+
 # Get desired Mode and current Icons
 MODE=$(noctalia msg theme-mode-get)
 ICONS=$(gsettings get org.gnome.desktop.interface icon-theme)
