@@ -106,7 +106,7 @@ configure_greetd() {
 vt = 7
 
 [default_session]
-command = "tuigreet --cmd niri"
+command = "tuigreet --time --remember --sessions niri --wrapper 'dbus-run-session'"
 user = "_greeter"
 EOF
 
