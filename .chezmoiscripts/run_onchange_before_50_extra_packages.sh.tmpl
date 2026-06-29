@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# run_onchange_before_50_extra_packages.sh - Download and install packages aside package manager
+#
+#
+# Globals:
+#   LAST_ERROR - Error message from last failed operation
+#   HOME - User home directory
+#   CHEZMOI_SOURCE_DIR - Chezmoi source directory (set by chezmoi)
+# Exit codes:
+#   0 (success), 1 (failure), 127 (missing dependency)
+
+{{ template "run_onchange_hash" . -}}
+
+set -euo pipefail
+
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+
+
+main() {
+
+  print_box "Extra Packages"
+  log STEP "Installing various packages"
+
+
+}
+
+main "$@"
