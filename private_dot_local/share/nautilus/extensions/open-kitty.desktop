@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Action
+Tooltip=Open Kitty terminal here
+Name=Open Kitty
+Icon=utilities-terminal
+Exec=kitty --directory %f
+
+[X-Action-Profile profile0]
+Exec=kitty --directory %f
+MimeTypes=inode/directory;

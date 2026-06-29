@@ -2,13 +2,13 @@ binds {
 
   Mod+Shift+Slash { show-hotkey-overlay; }
 
-  Mod+T repeat=false hotkey-overlay-title="Open a Terminal" { spawn "ghostty"; }
+  Mod+T repeat=false hotkey-overlay-title="Open a Terminal" { spawn "kitty"; }
   Mod+Space repeat=false hotkey-overlay-title="Open application launcher" { spawn-sh "noctalia msg panel-toggle launcher"; }
   Mod+Alt+C repeat=false hotkey-overlay-title="Clipboard History" { spawn-sh "noctalia msg panel-toggle clipboard"; }
   Mod+Alt+E repeat=false hotkey-overlay-title="Emoji Picker" { spawn-sh "noctalia msg panel-toggle launcher /emo"; }
   Mod+B repeat=false { spawn "vivaldi"; }
   Mod+E repeat=false hotkey-overlay-title="File Browser" { spawn "nautilus"; }
-  Mod+Alt+T repeat=false hotkey-overlay-title="Text Editor" { spawn "ghostty" "nvim"; }
+  Mod+Alt+T repeat=false hotkey-overlay-title="Text Editor" { spawn "kitty" "nvim"; }
   Mod+L repeat=false hotkey-overlay-title="Lock the Screen" { spawn-sh "noctalia msg session lock"; }
   Mod+Ctrl+P repeat=false hotkey-overlay-title="Pick color" { spawn "colorpick.sh"; }
   Mod+Alt+I repeat=false hotkey-overlay-title="Toggle idle innhibitor" { spawn-sh "noctalia msg caffeein-toggle"; }
