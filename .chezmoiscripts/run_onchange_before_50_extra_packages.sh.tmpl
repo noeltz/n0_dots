@@ -27,6 +27,9 @@ main() {
   print_box "Extra Packages"
   log STEP "Installing various packages"
 
+curl -sSL https://raw.githubusercontent.com/srinivasr/nirimod/main/install.sh | bash -s -- --skip-deps --install
+
+curl -fsSL https://opencode.ai/install | bash
 
 }
 
