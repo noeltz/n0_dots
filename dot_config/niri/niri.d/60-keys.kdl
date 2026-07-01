@@ -2,7 +2,7 @@ binds {
 
   Mod+Shift+Slash { show-hotkey-overlay; }
 
-  Mod+T repeat=false hotkey-overlay-title="Open a Terminal" { spawn "kitty"; }
+  Mod+T repeat=false hotkey-overlay-title="Open a Terminal" { spawn-sh "kitty --single-instance"; }
   Mod+Space repeat=false hotkey-overlay-title="Open application launcher" { spawn-sh "noctalia msg panel-toggle launcher"; }
   Mod+Alt+C repeat=false hotkey-overlay-title="Clipboard History" { spawn-sh "noctalia msg panel-toggle clipboard"; }
   Mod+Alt+E repeat=false hotkey-overlay-title="Emoji Picker" { spawn-sh "noctalia msg panel-toggle launcher /emo"; }

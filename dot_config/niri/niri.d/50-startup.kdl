@@ -12,6 +12,7 @@
 // Productivity & Shell
 spawn-sh-at-startup "reload-portal.sh"
 spawn-sh-at-startup "noctalia"
+spawn-sh-at-startup "kitty -1 --session <(echo 'launch --allow-remote-control --hold kitten @ resize-os-window --action=hide')"
 
 // Clipboard Management
 // spawn-at-startup "wl-paste" "--type" "text" "--watch" "cliphist" "store"
