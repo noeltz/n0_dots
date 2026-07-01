@@ -12,7 +12,8 @@
 // Productivity & Shell
 spawn-sh-at-startup "reload-portal.sh"
 spawn-sh-at-startup "noctalia"
-spawn-sh-at-startup "kitty -1 --session <(echo 'launch --allow-remote-control --hold kitten @ resize-os-window --action=hide')"
+spawn-sh-at-startup "kitty -1 --detach --start-as hidden -o allow_remote_control=socket-only --listen-on unix:@kitty
+kitten @ --to unix:@kitty focus-window -m "not id:1 and state:focused" 2>/dev/null"
 
 // Clipboard Management
 // spawn-at-startup "wl-paste" "--type" "text" "--watch" "cliphist" "store"
