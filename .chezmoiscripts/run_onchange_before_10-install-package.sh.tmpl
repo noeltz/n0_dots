@@ -167,7 +167,7 @@ _main_nix() {
       log SKIP "${COLOR_GREEN}${pkg}${COLOR_RESET} (nix) exists"
       continue
     fi
-    if nix-env -iA "$pkg"; then
+    if nix-env -f '<nixpkgs>' -iA "$pkg"; then
       log INFO "Installed (nix): ${COLOR_GREEN}${pkg}${COLOR_RESET}"
     else
       log WARN "Failed to install (nix): ${COLOR_YELLOW}${pkg}${COLOR_RESET}"
