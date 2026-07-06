@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# run_once_before_00-configure-repos.sh - Void Linux bootstrap
+#
+# Runs a full system update and configures the extra XBPS repositories needed by
+# the package list (nonfree, Noctalia, Vostok). Each step is idempotent. Runs
+# before package installation (before_10) so every repository is available.
+# Runs unattended.
+# Exit codes: 0 (success), 1 (failure)
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+# Adds an XBPS repository via /etc/xbps.d/<name>.conf if not already present.
+#
+# Arguments:
+#   $1 - Repository label (used for the conf filename, e.g. 'vostok')
+#   $2 - Repository URL
+# Returns:
+#   0 on success or already configured, 1 on failure
+_add_xbps_repo() {
+  local name="$1" url="$2"
+  local conf_file="/etc/xbps.d/10-${name}.conf"
+
+  if [[ -f "$conf_file" ]]; then
+    log SKIP "${name} repository already configured"
+    return 0
+  fi
+
+  log STEP "Adding ${name} XBPS repository"
+  if ! echo "repository=${url}" | sudo tee "$conf_file" >/dev/null; then
+    die "Failed to write ${conf_file}"
+  fi
+  sudo xbps-install -S
+  log INFO "${name} repository added."
+}
+
+main() {
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
+  fi
+
+  if ! command_exists xbps-install; then
+    die "xbps-install not found - this bootstrap is for Void Linux only."
+  fi
+
+  print_box "Void Linux Bootstrap"
+
+  # --- Full system update ---
+  log STEP "Running full system update"
+  sudo xbps-install -Su
+  log INFO "System update complete."
+
+  # --- Enable nonfree repository (needed for spotify, chromium-widevine) ---
+  if xbps-query void-repo-nonfree &>/dev/null 2>&1; then
+    log SKIP "Nonfree repository already enabled"
+  else
+    log STEP "Enabling nonfree repository"
+    sudo xbps-install -y void-repo-nonfree
+    sudo xbps-install -S
+    log INFO "Nonfree repository enabled."
+  fi
+
+  # --- Extra XBPS repositories ---
+  _add_xbps_repo "noctalia" "https://universalrepository.pages.dev/void"
+  _add_xbps_repo "vostok"   "https://repo.vostoklinux.org/current"
+
+  log INFO "Void Linux bootstrap complete."
+}
+
+main "$@"
