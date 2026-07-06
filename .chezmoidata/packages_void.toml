@@ -45,6 +45,8 @@ packages = [
   "gpu-screen-recorder",
   "gvfs",
   "gvfs-mtp",
+  "handy-bin",
+  "helium-browser",
   "i2c-tools",
   "ImageMagick",
   "jq",
@@ -93,6 +95,7 @@ packages = [
   "qt6ct",
   "ristretto",
   "rsync",
+  "rustdesk",
   "sheldon",
   "socklog-void",
   "starship",
@@ -117,6 +120,7 @@ packages = [
   "xwayland-satellite",
   "yazi",
   "zathura",
+  "zed",
   "zoxide",
   "zsh"
 ]
