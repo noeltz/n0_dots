@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Micro Editor
+Exec=kitty -e micro %F
+Icon=accessories-text-editor
+Categories=Utility;TextEditor;
+Terminal=false
+MimeType=text/plain;text/x-shellscript;text/x-python;
