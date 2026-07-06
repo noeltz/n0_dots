@@ -3,8 +3,7 @@
 #
 # Enables/disables the services declared in .chezmoidata/services.toml
 # (disable_system, disable_user, enable_system, enable_user) via the lib
-# helpers, which dispatch on the active init system (runit on Void). Niri
-# session wiring (a systemd --user mechanism) is not applicable on runit.
+# helpers, which dispatch on the active init system (runit on Void).
 # All operations are idempotent.
 # Exit codes: 0 (success), 1 (failure)
 
@@ -24,10 +23,6 @@ main() {
   fi
 
   print_box "System Services"
-
-  # runit has no systemd user manager, so niri session wiring (niri_wants)
-  # does not apply here.
-  log SKIP "User service wiring skipped (runit - no systemd user manager)"
 
   log STEP "Disabling services"
   {{ range .disable_system -}}
