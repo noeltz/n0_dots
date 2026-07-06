@@ -9,3 +9,7 @@ iconTheme = "Papirus"
 [nautilus]
 default-folder-viewer = "list-view"
 show-delete-permanently = "true"
+
+[terminal]
+exec = "kitty"
+exec-arg = "-e"

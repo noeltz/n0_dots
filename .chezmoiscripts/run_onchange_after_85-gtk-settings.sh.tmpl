@@ -34,6 +34,12 @@ main() {
   {{ range $key, $val := .nautilus -}}
   gsettings set org.gnome.nautilus.preferences {{ $key | kebabcase }} {{ $val | quote }} && log INFO "{{ $key }} set to {{ $val }}"
   {{ end -}}
+  
+  log STEP "Applying default applications settings"
+  
+  {{ range $key, $val := .terminal -}}
+  gsettings set org.gnome.desktop.default-applications.terminal {{ $key | kebabcase }} {{ $val | quote }} && log INFO "{{ $key }} set to {{ $val }}"
+  {{ end -}}
 }
 
 main "$@"
