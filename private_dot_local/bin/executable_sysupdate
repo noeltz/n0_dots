@@ -1,150 +1,243 @@
 #!/usr/bin/env bash
+# sysupdate - Update all package sources and report services needing restart.
+#
+# Updates xbps (Void), Flatpak, and Nix (nix-env) packages, reclaims unused
+# space, then scans runit system services and dinit user services for processes
+# still running outdated (deleted) binaries/libs and reports the exact restart
+# commands. Recommends a reboot when a newer kernel is installed than running.
+#
+# All stages are idempotent. Service restarts are NEVER performed automatically
+# - only reported. Requires sudo (for xbps and reading system-service state).
+#
+# Usage: sysupdate [-y|--no-confirm] [-h|--help]
 
-ORANGE='\033[0;33m'
-NC='\033[0m' # No Color
+set -uo pipefail
 
-pkg_text=" - System packages updated."
-flatpak_text=" - Flatpak packages updated."
-post_upd_text=" - Post-update checks completed."
+# --- Visual helpers (self-contained, repo-style) ----------------------------
 
-upd_command=""
-upd_args=()
-flatpak_args=(-u --system)
-post_upd_args=()
-post_upd_cmd=""
+if [[ -n "${NO_COLOR:-}" ]] || [[ ! -t 1 ]] || [[ "${TERM:-}" == "dumb" ]]; then
+  C_RESET="" C_BLUE="" C_GREEN="" C_YELLOW="" C_RED="" C_CYAN="" C_MAGENTA=""
+else
+  C_RESET=$'\033[0m'  C_BLUE=$'\033[1;34m'  C_GREEN=$'\033[1;32m'
+  C_YELLOW=$'\033[1;33m' C_RED=$'\033[1;31m' C_CYAN=$'\033[1;36m'
+  C_MAGENTA=$'\033[0;35m'
+fi
 
-_detect_distro() {
-  if [[ -f /etc/os-release ]]; then
-    grep -oP '^ID="?\K\w+' /etc/os-release 2>/dev/null | tr '[:upper:]' '[:lower:]'
-  else
-    echo "unknown"
+_step() { printf '\n%s::%s %s\n\n' "$C_BLUE"   "$C_RESET" "$*"; }
+_info() { printf '%sINFO:%s %s\n'              "$C_GREEN"  "$C_RESET" "$*"; }
+_ok()   { printf '%sOK:%s %s\n'                "$C_GREEN"  "$C_RESET" "$*"; }
+_warn() { printf '%sWARN:%s %s\n'              "$C_YELLOW" "$C_RESET" "$*"; }
+_err()  { printf '%sERR:%s %s\n'               "$C_RED"    "$C_RESET" "$*"; }
+_skip() { printf '%sSKIP:%s %s\n'              "$C_MAGENTA" "$C_RESET" "$*"; }
+
+# --- Sudo keepalive ----------------------------------------------------------
+
+_SUDO_PID=""
+_start_sudo() {
+  if ! sudo -v; then
+    _err "sudo is required"
+    exit 1
   fi
+  ( while true; do sudo -n true 2>/dev/null || exit; sleep 60; done ) &
+  _SUDO_PID=$!
+}
+_stop_sudo() { [[ -n "$_SUDO_PID" ]] && kill "$_SUDO_PID" 2>/dev/null || true; }
+trap '_stop_sudo' EXIT INT TERM
+
+# --- Stage: xbps -------------------------------------------------------------
+
+_update_xbps() {
+  _step "Updating Void packages (xbps)"
+  if ! sudo xbps-install -Su; then
+    _err "xbps update failed"
+    return 1
+  fi
+  _ok "xbps packages up to date"
 }
 
-_setup_arch() {
-  upd_command="pacman"
-  upd_args=(-Syu)
-  post_upd_cmd="checkservices"
-  post_upd_args=(-i "sddm.service" -i "gdm.service" -i "ly@tty2.service")
+# --- Stage: flatpak ----------------------------------------------------------
+
+_update_flatpak() {
+  _step "Updating Flatpaks"
+  if ! command -v flatpak >/dev/null 2>&1; then _skip "flatpak not installed"; return 0; fi
+  local -a fa=(--system)
+  [[ "$NO_CONFIRM" -eq 1 ]] && fa+=(--assumeyes)
+  flatpak update "${fa[@]}" || _warn "flatpak update reported issues"
+  _info "removing unused flatpaks"
+  flatpak uninstall --unused --assumeyes 2>/dev/null || true
+  _ok "flatpaks updated"
 }
 
-_setup_void() {
-  upd_command="xbps-install"
-  upd_args=(-SyuA)
-  post_upd_cmd=""
+# --- Stage: nix --------------------------------------------------------------
+
+_update_nix() {
+  _step "Updating Nix packages (nix-env)"
+  if ! command -v nix-env >/dev/null 2>&1; then _skip "nix not installed"; return 0; fi
+  _info "refreshing nix channel"
+  nix-channel --update || _warn "nix-channel --update failed"
+  _info "upgrading user profile"
+  nix-env --upgrade || _warn "nix-env --upgrade failed"
+  if command -v nix-collect-garbage >/dev/null 2>&1; then
+    _info "collecting garbage older than 30 days"
+    nix-collect-garbage --delete-older-than 30d >/dev/null 2>&1 || true
+  fi
+  _ok "nix profile updated"
 }
 
-case "$(_detect_distro)" in
-arch)
-  _setup_arch
-  for pm in paru yay; do
-    if command -v "$pm" >/dev/null 2>&1; then
-      upd_command="$pm"
-      break
-    fi
+# --- Detect services running outdated binaries -------------------------------
+
+# Resolves the dinit service name whose `command` matches the given exe path.
+_dinit_service_for() {
+  local exe="$1" ddir f cmd first
+  ddir="${XDG_CONFIG_HOME:-$HOME/.config}/dinit.d"
+  [[ -d "$ddir" ]] || return 0
+  for f in "$ddir"/*; do
+    [[ -f "$f" ]] || continue
+    cmd=$(grep -m1 -E '^command[[:space:]]*[=:]' "$f" 2>/dev/null \
+          | sed -E 's/^command[[:space:]]*[=:][[:space:]]*//')
+    first=${cmd%% *}
+    [[ -n "$first" && "$first" == "$exe" ]] && { basename "$f"; return 0; }
   done
-  ;;
-void)
-  _setup_void
-  ;;
-*)
-  upd_command="pacman"
-  upd_args=(-Syu)
-  ;;
-esac
-
-_confirm_prompt() {
- SKIP_PROMPT=1
-
-  #local response
-  #echo -n -e "Skip confirmation prompts? [y/N] "
-  #read -r response
-
-  #if [[ "$response" =~ ^[Yy]$ ]]; then
-  #  SKIP_PROMPT=1
-  #elif [[ "$response" =~ ^[Nn]|^\s*$ ]]; then
-  #  SKIP_PROMPT=0
-  #else
-  #  _confirm_prompt
-  #fi
+  return 0
 }
 
-_uodate_system() {
+RUNIT_STALE=()      # runit services with stale binaries
+DINIT_STALE=()      # dinit services with stale binaries
+UNSUP=()            # supervised-but-unresolvable processes (pid:name)
+REBOOT=0
 
-  if [ "$SKIP_PROMPT" -eq 1 ]; then
-    flatpak_args+=(-y)
-    if [[ -n "$post_upd_cmd" ]]; then
-      post_upd_args+=(-a)
-    fi
-    #echo -e "${ORANGE}===>${NC}  Skipping confirmation prompts..."
-  fi
+_scan_services() {
+  _step "Scanning for services running outdated binaries"
+  local line svc pid exe
 
-  echo -e "${ORANGE}===>${NC}  Beginning system update...\n"
-
-  if [[ "$upd_command" == "xbps-install" ]]; then
-    if ! sudo "$upd_command" "${upd_args[@]}"; then
-      failed_update=true
-      pkg_text="<b>[!] Failed to update system packages.</b>"
-    fi
-  else
-    if ! "$upd_command" "${upd_args[@]}"; then
-      failed_update=true
-      pkg_text="<b>[!] Failed to update system packages.</b>"
-    fi
-  fi
-
-  echo -e "\n${ORANGE}===>${NC}  Checking for flatpak updates...\n"
-
-  if ! flatpak update "${flatpak_args[@]}"; then
-    failed_update=true
-    flatpak_text="<b>[!] Failed to update flatpak packages.</b>"
-  fi
-  
-  echo -e "\n${ORANGE}===>${NC}  Checking for NIX updates...\n"
-
-  if command -v nix-env >/dev/null 2>&1; then
-    for pkg in $(nix-env -q --installed | sed 's/-[0-9].*//'); do
-        nix-env -f '<nixpkgs>' -uA "$pkg"
+  # runit system services (root-owned -> need sudo to inspect /proc)
+  if [[ -d /var/service ]]; then
+    local -A rseen=()
+    local -a svlines=()
+    mapfile -t svlines < <(sudo sv status /var/service/* 2>/dev/null)
+    for line in "${svlines[@]}"; do
+      [[ "$line" == run:* ]] || continue
+      svc=${line#run: }; svc=${svc%%:*}
+      pid=$(printf '%s' "$line" | grep -oP 'pid \K[0-9]+' | head -n1)
+      [[ -n "$pid" ]] || continue
+      exe=$(sudo readlink "/proc/$pid/exe" 2>/dev/null) || continue
+      if [[ "$exe" == *"(deleted)" ]] || sudo grep -q '(deleted)' "/proc/$pid/maps" 2>/dev/null; then
+        [[ -z "${rseen[$svc]:-}" ]] && { RUNIT_STALE+=("$svc"); rseen[$svc]=1; }
+      fi
     done
   fi
 
-  echo -e "\n${ORANGE}===>${NC}  Running post-installation checks...\n"
-
-  if [[ -n "$post_upd_cmd" ]] && command -v "$post_upd_cmd" >/dev/null 2>&1; then
-    if ! sudo "$post_upd_cmd" "${post_upd_args[@]}"; then
-      failed_update=true
-      post_upd_text="<b>[!] Failed to run post-service checks.</b>"
-    fi
-  else
-    post_upd_text=" - Post-update checks skipped (not available on this distro)."
+  # dinit user services (user-owned -> readable directly; direct children of dinit)
+  local dinit_pid clean dsvc
+  dinit_pid=$(pgrep -x dinit 2>/dev/null | head -n1)
+  if [[ -n "$dinit_pid" ]]; then
+    local -A dseen=()
+    for pid in $(ps --ppid "$dinit_pid" -o pid= 2>/dev/null); do
+      exe=$(readlink "/proc/$pid/exe" 2>/dev/null) || continue
+      if [[ "$exe" == *"(deleted)" ]] || grep -q '(deleted)' "/proc/$pid/maps" 2>/dev/null; then
+        clean=${exe% \(deleted\)}
+        dsvc=$(_dinit_service_for "$clean")
+        if [[ -n "$dsvc" ]]; then
+          [[ -z "${dseen[$dsvc]:-}" ]] && { DINIT_STALE+=("$dsvc"); dseen[$dsvc]=1; }
+        else
+          UNSUP+=("dinit/$pid/${clean##*/}")
+        fi
+      fi
+    done
   fi
-
-  notif_msg="$pkg_text\n$flatpak_text\n$post_upd_text"
-
-  if [ "$failed_update" ]; then
-    notify-send 'System update failed...' "$notif_msg" -a 'System Update' -u critical -i dialog-warning-symbolic
-  else
-    notify-send 'System update completed...' "$notif_msg" -a 'System Update' -i object-select-symbolic
-  fi
-
-  read -r -n 1 -p 'Press any key to exit...'
 }
 
-while true; do
+_report_services() {
+  _step "Services running outdated binaries (restart is NOT automatic)"
+  local found=0
+  local -a cmds=()
+  for svc in "${RUNIT_STALE[@]}"; do
+    printf '  %srunit%s  %-24s -> %s\n' "$C_YELLOW" "$C_RESET" "$svc" "sudo sv restart $svc"
+    cmds+=("sudo sv restart $svc"); found=1
+  done
+  for svc in "${DINIT_STALE[@]}"; do
+    printf '  %sdinit%s  %-24s -> %s\n' "$C_YELLOW" "$C_RESET" "$svc" "dinitctl restart $svc"
+    cmds+=("dinitctl restart $svc"); found=1
+  done
+  for u in "${UNSUP[@]:-}"; do
+    [[ -z "$u" ]] && continue
+    printf '  %s%s%s (restart manually)\n' "$C_MAGENTA" "$u" "$C_RESET"; found=1
+  done
+  if [[ $found -eq 0 ]]; then
+    _ok "none - all running services use up-to-date binaries"
+  else
+    printf '\n%sRestart commands:%s\n' "$C_CYAN" "$C_RESET"
+    printf '  %s\n' "${cmds[@]}"
+  fi
+}
+
+# --- Reboot check ------------------------------------------------------------
+
+_check_reboot() {
+  _step "Reboot check"
+  local running newest
+  running=$(uname -r)
+  newest=$(ls /boot/vmlinuz-* 2>/dev/null | sed 's|.*/vmlinuz-||' | sort -V | tail -n1)
+  if [[ -z "$newest" ]]; then _skip "no kernels found in /boot"; return 0; fi
+  if [[ "$running" != "$newest" ]]; then
+    _warn "running kernel $running < installed $newest - reboot recommended"
+    REBOOT=1
+  else
+    _ok "running kernel $running is current"
+  fi
+}
+
+# --- Main --------------------------------------------------------------------
+
+NO_CONFIRM=0
+while [[ $# -gt 0 ]]; do
   case "$1" in
-  --confirm)
-    SKIP_PROMPT=0
-    shift
-    ;;
-  --no-confirm | -y)
-    SKIP_PROMPT=1
-    shift
-    ;;
-  *)
-    fastfetch
-    [ -z "$SKIP_PROMPT" ] && _confirm_prompt
-    _uodate_system
-    break
-    ;;
+    -y|--no-confirm) NO_CONFIRM=1; shift ;;
+    -h|--help)
+      sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0 ;;
+    *) shift ;;
   esac
 done
+# Non-interactive when stdin is not a TTY (e.g. launched from a keybinding).
+[[ -t 0 ]] || NO_CONFIRM=1
+
+main() {
+  _start_sudo
+
+  command -v fastfetch >/dev/null 2>&1 && fastfetch
+
+  printf '\n%s========== System Update ==========%s\n' "$C_BLUE" "$C_RESET"
+
+  local fails=0
+  _update_xbps    || fails=$((fails + 1))
+  _update_flatpak || true
+  _update_nix     || true
+  _scan_services  || true
+  _check_reboot   || true
+  _report_services
+
+  local title body
+  if [[ $fails -gt 0 ]]; then
+    title="System update had issues"; body="xbps/flatpak/nix stages need attention."
+  elif [[ $REBOOT -eq 1 ]]; then
+    title="System update completed - reboot recommended"; body="A newer kernel is installed."
+  else
+    title="System update completed"; body="All package sources up to date."
+  fi
+
+  if command -v notify-send >/dev/null 2>&1; then
+    local -a nmsg=("$title" "$body" -a "System Update")
+    if [[ $REBOOT -eq 1 || $fails -gt 0 ]]; then
+      nmsg+=(-u critical -i dialog-warning-symbolic)
+    else
+      nmsg+=(-i object-select-symbolic)
+    fi
+    notify-send "${nmsg[@]}" || true
+  fi
+
+  _stop_sudo
+  [[ -t 0 ]] && read -r -n 1 -p $'\nPress any key to exit...'
+}
+
+main
