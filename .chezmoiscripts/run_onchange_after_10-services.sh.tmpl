@@ -1,31 +1,14 @@
 #!/usr/bin/env bash
-# run_onchange_after_10-services.sh - Configure system/user services (cross-init)
+# run_onchange_after_10-services.sh - Configure system/user services (runit)
 #
-# Wires user services into the niri session (systemd only), then disables
-# and enables the declared system/user services. Services are declared in
-# .chezmoidata/services.toml (niri_wants, enable_system, disable_system,
-# enable_user, disable_user). On systemd: uses systemctl. On runit: uses
-# sv symlinks. All operations are idempotent via lib helpers.
+# Enables/disables the services declared in .chezmoidata/services.toml
+# (disable_system, disable_user, enable_system, enable_user) via the lib
+# helpers, which dispatch on the active init system (runit on Void). Niri
+# session wiring (a systemd --user mechanism) is not applicable on runit.
+# All operations are idempotent.
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . -}}
-
-{{- $distro := .chezmoi.osRelease.id -}}
-{{- if not (or (eq $distro "arch") (eq $distro "void")) -}}
-  {{- $idLike := "" -}}
-  {{- if hasKey .chezmoi.osRelease "id_like" -}}
-    {{- $idLike = .chezmoi.osRelease.id_like -}}
-  {{- end -}}
-  {{- if contains $idLike "void" -}}
-    {{- $distro = "void" -}}
-  {{- else if contains $idLike "arch" -}}
-    {{- $distro = "arch" -}}
-  {{- else if lookPath "xbps-install" -}}
-    {{- $distro = "void" -}}
-  {{- else if lookPath "pacman" -}}
-    {{- $distro = "arch" -}}
-  {{- end -}}
-{{- end -}}
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -42,22 +25,9 @@ main() {
 
   print_box "System Services"
 
-  {{- if eq $distro "arch" }}
-  # --- systemd: wire user services into niri session ---
-  log STEP "Wiring user services into niri.service"
-  systemctl --user daemon-reload
-  {{ range .niri_wants -}}
-  if systemctl --user add-wants niri.service {{ . | quote }}; then
-    log INFO "Added {{ . }} to niri.service"
-  else
-    log WARN "Failed to add {{ . }} to niri.service"
-  fi
-  {{ end -}}
-  systemctl --user daemon-reload
-  {{- else if eq $distro "void" }}
-  # --- runit: niri session wiring is not needed (no systemd user manager) ---
-  log SKIP "User service wiring skipped (runit — no systemd user manager)"
-  {{- end }}
+  # runit has no systemd user manager, so niri session wiring (niri_wants)
+  # does not apply here.
+  log SKIP "User service wiring skipped (runit - no systemd user manager)"
 
   log STEP "Disabling services"
   {{ range .disable_system -}}

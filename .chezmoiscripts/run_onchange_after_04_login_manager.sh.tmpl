@@ -1,30 +1,11 @@
 #!/usr/bin/env bash
-# run_onchange_after_04_login_manager.sh - Configure display manager (cross-distro)
+# run_onchange_after_04_login_manager.sh - Configure display manager (Void)
 #
-# Enables greetd with tuigreet on both Arch and Void.
-# On Void: vt=7 with _greeter user, keep all agettys.
-# On Arch: vt=1 with greeter user, disable agetty-tty1.
-# Disables conflicting display managers on both systems.
+# Enables greetd with tuigreet (vt=7, _greeter user) and disables any
+# conflicting display managers. Void/runit only.
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . -}}
-
-{{- $distro := .chezmoi.osRelease.id -}}
-{{- if not (or (eq $distro "arch") (eq $distro "void")) -}}
-  {{- $idLike := "" -}}
-  {{- if hasKey .chezmoi.osRelease "id_like" -}}
-    {{- $idLike = .chezmoi.osRelease.id_like -}}
-  {{- end -}}
-  {{- if contains $idLike "void" -}}
-    {{- $distro = "void" -}}
-  {{- else if contains $idLike "arch" -}}
-    {{- $distro = "arch" -}}
-  {{- else if lookPath "xbps-install" -}}
-    {{- $distro = "void" -}}
-  {{- else if lookPath "pacman" -}}
-    {{- $distro = "arch" -}}
-  {{- end -}}
-{{- end -}}
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -85,21 +66,6 @@ disable_conflicting_dms() {
 
 readonly GREETD_CONFIG_FILE="/etc/greetd/config.toml"
 
-
-enable_greetd() {
-  local -r link="/var/service/greetd"
-  if [[ -L "$link" ]]; then
-    log SKIP "greetd already enabled"
-  elif sudo ln -s /etc/sv/greetd "$link"; then
-    log INFO "${COLOR_GREEN}greetd${COLOR_RESET} enabled (will start on next boot)"
-  else
-    LAST_ERROR="Failed to create greetd symlink"
-    die "Failed: $LAST_ERROR"
-  fi
-}
-
-{{- if eq $distro "void" }}
-
 configure_greetd() {
   write_system_config "$GREETD_CONFIG_FILE" <<EOF || die "Failed to write greetd config file: $LAST_ERROR"
 [terminal]
@@ -123,27 +89,17 @@ EOF
   log INFO "Configured greetd display manager (greeter: _greeter, vt=7)"
 }
 
-{{- else }}
-
-readonly ARCH_GREETER_USER="greeter"
-
-configure_greetd() {
-  write_system_config "$GREETD_CONFIG_FILE" <<EOF || die "Failed to write greetd config file: $LAST_ERROR"
-[terminal]
-vt = 1
-
-[default_session]
-command = "tuigreet --time --remember --remember-session --cmd niri-session"
-user = "${ARCH_GREETER_USER}"
-EOF
-
-  sudo mkdir -p /var/cache/tuigreet
-  sudo chown -R "${ARCH_GREETER_USER}:${ARCH_GREETER_USER}" /var/cache/tuigreet
-
-  log INFO "Configured greetd display manager (greeter: ${ARCH_GREETER_USER})"
+enable_greetd() {
+  local -r link="/var/service/greetd"
+  if [[ -L "$link" ]]; then
+    log SKIP "greetd already enabled"
+  elif sudo ln -s /etc/sv/greetd "$link"; then
+    log INFO "${COLOR_GREEN}greetd${COLOR_RESET} enabled (will start on next boot)"
+  else
+    LAST_ERROR="Failed to create greetd symlink"
+    die "Failed: $LAST_ERROR"
+  fi
 }
-
-{{- end }}
 
 main() {
   print_box "Login Manager"
