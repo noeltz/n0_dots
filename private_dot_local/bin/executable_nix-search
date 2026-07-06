@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+nix-instantiate --eval --json -E 'builtins.attrNames (import <nixpkgs> {})' | jq '.[]' -r | fzf | xargs -I{} nix-env -f '<nixpkgs>' -iA {}
