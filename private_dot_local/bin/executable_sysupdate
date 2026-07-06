@@ -72,7 +72,6 @@ _confirm_prompt() {
 _uodate_system() {
 
   if [ "$SKIP_PROMPT" -eq 1 ]; then
-    upd_args+=(--noconfirm)
     flatpak_args+=(-y)
     if [[ -n "$post_upd_cmd" ]]; then
       post_upd_args+=(-a)
