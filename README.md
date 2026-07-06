@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Arch-7C3AED?style=flat&logo=archlinux&logoColor=white&labelColor=1a1b26" alt="Arch">
+  <img src="https://img.shields.io/badge/Void_Linux-7C3AED?style=flat&logoColor=white&labelColor=1a1b26" alt="Void Linux">
   <img src="https://img.shields.io/badge/Niri-7C3AED?style=flat&logoColor=white&labelColor=1a1b26" alt="Niri">
   <img src="https://img.shields.io/badge/Noctalia_v5-A78BFA?style=flat&logoColor=white&labelColor=1a1b26" alt="Noctalia v5">
   <img src="https://img.shields.io/badge/Zsh-7C3AED?style=flat&logo=gnubash&logoColor=white&labelColor=1a1b26" alt="Zsh">
@@ -24,7 +24,7 @@ Or step by step:
 
 ```bash
 # Install chezmoi
-sudo pacman -S chezmoi
+sudo xbps-install -S chezmoi
 
 # Clone and apply
 chezmoi init --apply https://github.com/noeltz/n0_dots.git
@@ -38,8 +38,8 @@ chezmoi init --apply https://github.com/noeltz/n0_dots.git
 
 | Category | What Gets Configured |
 |----------|---------------------|
-| **AUR Helper** | paru + Chaotic-AUR repository |
-| **Packages** | ~120+ packages declaratively managed via `packages.toml` |
+| **Repositories** | XBPS: nonfree, Noctalia, Vostok · Nix (nixpkgs-unstable) |
+| **Packages** | ~120 Void (xbps) + Nix packages declaratively managed via `packages_void.toml` / `packages_nix.toml` |
 | **Shell** | Zsh as default shell, Starship prompt, Sheldon plugin manager |
 | **Window Manager** | Niri (Wayland) with Noctalia theme |
 | **Display Manager** | greetd with tuigreet |
@@ -50,7 +50,7 @@ chezmoi init --apply https://github.com/noeltz/n0_dots.git
 | **Browser** | Helium (Chromium-based) with Widevine DRM |
 | **Editor** | VSCodium with matugen dynamic theme |
 | **Developer Tools** | Git, GitHub CLI, Neovim, LazyGit, Yazi, Zoxide, FZF, ripgrep, Bat, Eza |
-| **Systemd** | Declarative service enable/disable via `services.toml` |
+| **Services** | Declarative service enable/disable via `services.toml` (runit) |
 | **XDG** | Full XDG Base Directory compliance, autostart management |
 | **Secrets** | Proton Pass CLI integration |
 | **Wallpapers** | Auto-downloaded from GitHub releases |
@@ -61,7 +61,7 @@ chezmoi init --apply https://github.com/noeltz/n0_dots.git
   <img src="https://img.shields.io/badge/Typical_Use_Cases-7C3AED?style=for-the-badge" alt="Typical Use Cases">
 </p>
 
-### Initial Setup on a Fresh Arch Install
+### Initial Setup on a Fresh Void Install
 
 ```bash
 sh -c "$(curl -fsLS https://get.chezmoi.io)" -- init --apply https://github.com/noeltz/n0_dots.git
@@ -71,7 +71,7 @@ This single command will:
 1. Install chezmoi
 2. Clone the repo
 3. Apply all dotfiles and run setup scripts
-4. Install paru, Chaotic-AUR, all packages, fonts, icons, themes
+4. Configure XBPS repositories (nonfree, Noctalia, Vostok), install all packages (xbps + Nix), fonts, icons, themes
 5. Configure greetd, shell, git, GitHub CLI, Proton Pass
 
 ### Pull Latest Changes and Apply
@@ -170,15 +170,14 @@ chezmoi runs scripts in a deterministic order:
 
 | Phase | Script | Purpose |
 |-------|--------|---------|
-| before | `00-install-aur-helper` | Install paru + Chaotic-AUR |
-| before | `10-install-package` | Install/remove packages from `packages.toml` |
+| before | `00-configure-repos` | Configure Void XBPS repositories (nonfree, Noctalia, Vostok) |
+| before | `10-install-package` | Install packages from `packages_void.toml` / `packages_nix.toml` |
 | before | `20_wallpapers` | Download wallpapers from GitHub releases |
-| after | `03-disable-plymouth` | Remove Plymouth splash screen |
 | after | `04_login_manager` | Configure greetd display manager |
 | after | `11-fonts_and_icons` | Install Maple Mono, Papirus, Tabler |
 | after | `20-gtk-settings` | Apply GTK settings from `gtk.toml` |
 | after | `30-vscode-theme` | Install matugen VSCode theme |
-| after | `10-systemd-service` | Enable/disable systemd services |
+| after | `10-services` | Enable/disable services (runit) |
 | after | `11-xdg-autostart` | Disable unwanted XDG autostart entries |
 | after | `80-init-proton-pass-cli` | Install and authenticate Proton Pass CLI |
 | after | `81-init-github` | Authenticate GitHub CLI, configure git |
@@ -192,8 +191,8 @@ All configuration is declarative via `.chezmoidata/*.toml`:
 
 | File | Controls |
 |------|----------|
-| `packages.toml` | Package install/uninstall lists |
-| `services.toml` | Systemd service enable/disable |
+| `packages_void.toml`, `packages_nix.toml` | Void (xbps) and Nix package lists |
+| `services.toml` | Service enable/disable (runit) |
 | `autostart.toml` | XDG autostart entries to disable |
 | `gtk.toml` | GTK theme, fonts, cursor, Nautilus settings |
 
@@ -203,11 +202,9 @@ Hidden library scripts in `.chezmoiscripts/lib/`:
 
 | Library | Purpose |
 |---------|---------|
-| `.lib-common.sh` | Logging, sudo, config updates, systemd, backups |
-| `.lib-chaotic_aur.sh` | Chaotic-AUR repository setup |
-| `.lib-package_manager.sh` | AUR helper detection and package installation |
-| `.lib-snapboot.sh` | Bootloader, initramfs, filesystem management |
-| `.lib-xdg_setup.sh` | XDG Base Directory configuration |
+| `.lib-common.sh` | Logging, sudo, config updates, service management, backups |
+| `.lib-platform.sh` | Distribution, package-manager and init-system detection |
+| `.lib-runit.sh` | Runit service enable/disable/stop |
 
 <br>
 
@@ -215,20 +212,12 @@ Hidden library scripts in `.chezmoiscripts/lib/`:
   <img src="https://img.shields.io/badge/Troubleshooting-7C3AED?style=for-the-badge" alt="Troubleshooting">
 </p>
 
-### Scripts fail with "paru is not installed"
-
-The `00-install-aur-helper` script must run first. On a fresh system, ensure the full init runs:
-
-```bash
-chezmoi init --apply https://github.com/noeltz/n0_dots.git
-```
-
 ### "chezmoi: command not found"
 
 Install chezmoi first:
 
 ```bash
-sudo pacman -S chezmoi
+sudo xbps-install -S chezmoi
 ```
 
 ### Scripts re-run on every apply
