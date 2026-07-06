@@ -73,15 +73,60 @@ _update_flatpak() {
 _update_nix() {
   _step "Updating Nix packages (nix-env)"
   if ! command -v nix-env >/dev/null 2>&1; then _skip "nix not installed"; return 0; fi
+
   _info "refreshing nix channel"
   nix-channel --update || _warn "nix-channel --update failed"
-  _info "upgrading user profile"
-  nix-env --upgrade || _warn "nix-env --upgrade failed"
+
+  # One lightweight pass to learn available versions (avoids the heavy
+  # single-pass closure diff of `nix-env --upgrade` that causes OOM).
+  local avail_file
+  avail_file=$(mktemp) || { _warn "could not create temp file"; return 0; }
+  _info "querying available versions"
+  if ! nix-env -qa >"$avail_file" 2>/dev/null; then
+    _warn "nix-env -qa failed (out of memory?); skipping nix upgrade"
+    rm -f "$avail_file"
+    return 0
+  fi
+
+  # Upgrade each installed package individually, only if a strictly newer
+  # version exists in the channel. Per-package invocations bound peak memory.
+  _info "checking installed packages for newer versions"
+  local entry name inst_ver avail_ver upgraded=0 checked=0
+  while IFS= read -r entry; do
+    [[ -z "$entry" ]] && continue
+    checked=$((checked + 1))
+    name=$(printf '%s' "$entry" | sed -E 's/-[0-9].*//')
+    inst_ver=${entry#${name}-}
+    # find the available version whose name part exactly matches
+    avail_ver=$(awk -v n="$name" '
+      { if (match($0, /-[0-9]/)) {
+          nn = substr($0, 1, RSTART - 1); vv = substr($0, RSTART + 1)
+          if (nn == n) { print vv; exit }
+      } }' "$avail_file")
+    [[ -z "$avail_ver" ]] && continue
+    # upgrade only if available is strictly newer (never downgrade)
+    if [[ "$avail_ver" != "$inst_ver" ]] \
+       && printf '%s\n%s\n' "$inst_ver" "$avail_ver" | sort -VC; then
+      if nix-env --upgrade "$name" 2>/dev/null; then
+        _info "upgraded $name: $inst_ver -> $avail_ver"
+        upgraded=$((upgraded + 1))
+      else
+        _warn "failed to upgrade $name"
+      fi
+    fi
+  done < <(nix-env -q --installed 2>/dev/null)
+  rm -f "$avail_file"
+
+  if [[ $upgraded -eq 0 ]]; then
+    _ok "nix profile up to date ($checked checked)"
+  else
+    _ok "nix profile: $upgraded/$checked upgraded"
+  fi
+
   if command -v nix-collect-garbage >/dev/null 2>&1; then
     _info "collecting garbage older than 30 days"
     nix-collect-garbage --delete-older-than 30d >/dev/null 2>&1 || true
   fi
-  _ok "nix profile updated"
 }
 
 # --- Detect services running outdated binaries -------------------------------
