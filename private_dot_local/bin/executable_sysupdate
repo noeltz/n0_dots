@@ -99,6 +99,14 @@ _uodate_system() {
     failed_update=true
     flatpak_text="<b>[!] Failed to update flatpak packages.</b>"
   fi
+  
+  echo -e "\n${ORANGE}===>${NC}  Checking for NIX updates...\n"
+
+  if command -v nix-env >/dev/null 2>&1; then
+    for pkg in $(nix-env -q --installed); do
+        nix-env -f '<nixpkgs>' -uA "$pkg"
+    done
+  fi
 
   echo -e "\n${ORANGE}===>${NC}  Running post-installation checks...\n"
 
