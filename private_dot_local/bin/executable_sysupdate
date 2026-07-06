@@ -15,7 +15,7 @@ post_upd_cmd=""
 
 _detect_distro() {
   if [[ -f /etc/os-release ]]; then
-    grep -oP '^ID=\K\w+' /etc/os-release 2>/dev/null | tr '[:upper:]' '[:lower:]'
+    grep -oP '^ID="?\K\w+' /etc/os-release 2>/dev/null | tr '[:upper:]' '[:lower:]'
   else
     echo "unknown"
   fi
@@ -30,7 +30,7 @@ _setup_arch() {
 
 _setup_void() {
   upd_command="xbps-install"
-  upd_args=(-Su)
+  upd_args=(-SyuA)
   post_upd_cmd=""
 }
 
