@@ -3,4 +3,5 @@
 type = process
 command = /usr/bin/wireplumber
 restart = true
-depends-on = pipewire
+smooth-recovery = true
+depends-on: pipewire

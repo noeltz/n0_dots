@@ -1,5 +1,7 @@
 # pipewire - core multimedia graph daemon (audio/video routing).
-# Supervised by dinit; auto-restarts on crash.
+# Supervised by dinit; smooth-recovery restarts it without tearing down its
+# dependents (wireplumber, pipewire-pulse) if it crashes.
 type = process
 command = /usr/bin/pipewire
 restart = true
+smooth-recovery = true
