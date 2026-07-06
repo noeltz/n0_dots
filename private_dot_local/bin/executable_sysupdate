@@ -77,13 +77,15 @@ _update_nix() {
   _info "refreshing nix channel"
   nix-channel --update || _warn "nix-channel --update failed"
 
-  # One lightweight pass to learn available versions (avoids the heavy
-  # single-pass closure diff of `nix-env --upgrade` that causes OOM).
+  # Query available versions for installed packages only (`-qa --installed`).
+  # This evaluates just those attributes lazily, avoiding the full-channel
+  # evaluation of bare `nix-env -qa` (and the bulk `--upgrade` closure diff)
+  # that OOMs on memory-constrained machines.
   local avail_file
   avail_file=$(mktemp) || { _warn "could not create temp file"; return 0; }
-  _info "querying available versions"
-  if ! nix-env -qa >"$avail_file" 2>/dev/null; then
-    _warn "nix-env -qa failed (out of memory?); skipping nix upgrade"
+  _info "querying available versions for installed packages"
+  if ! nix-env -qa --installed >"$avail_file" 2>/dev/null; then
+    _warn "nix-env -qa --installed failed; skipping nix upgrade"
     rm -f "$avail_file"
     return 0
   fi
