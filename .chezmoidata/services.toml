@@ -1,24 +1,9 @@
-# User services wired into the niri session (systemctl --user add-wants niri.service)
-niri_wants = [
-
-]
-
-# System services to enable (systemctl enable). Idempotent.
+# System services to enable (runit: symlinked into /var/service). Idempotent.
 enable_system = [
 
 ]
 
-# System services to disable and stop (systemctl disable --now). Idempotent.
+# System services to disable and stop (runit: removed from /var/service, sv down). Idempotent.
 disable_system = [
-
-]
-
-# User services to enable (systemctl --user enable). Idempotent.
-enable_user = [
-  "app-com.mitchellh.ghostty.service",
-]
-
-# User services to disable and stop (systemctl --user disable --now). Idempotent.
-disable_user = [
 
 ]

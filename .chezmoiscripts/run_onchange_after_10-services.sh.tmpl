@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# run_onchange_after_10-services.sh - Configure system/user services (runit)
+# run_onchange_after_10-services.sh - Configure system services (runit)
 #
-# Enables/disables the services declared in .chezmoidata/services.toml
-# (disable_system, disable_user, enable_system, enable_user) via the lib
-# helpers, which dispatch on the active init system (runit on Void).
-# All operations are idempotent.
+# Enables/disables the system services declared in .chezmoidata/services.toml
+# (disable_system, enable_system) via the lib helpers, which dispatch on the
+# active init system (runit on Void). All operations are idempotent.
 # Exit codes: 0 (success), 1 (failure)
 
 {{ template "run_onchange_hash" . -}}
@@ -32,25 +31,11 @@ main() {
     log WARN "Failed to disable {{ . }}: $LAST_ERROR"
   fi
   {{ end -}}
-  {{ range .disable_user -}}
-  if disable_service {{ . | quote }} "user"; then
-    log INFO "Disabled user service {{ . }}"
-  else
-    log WARN "Failed to disable {{ . }}: $LAST_ERROR"
-  fi
-  {{ end -}}
 
   log STEP "Enabling services"
   {{ range .enable_system -}}
   if enable_service {{ . | quote }} "system"; then
     log INFO "Enabled system service {{ . }}"
-  else
-    log WARN "Failed to enable {{ . }}: $LAST_ERROR"
-  fi
-  {{ end -}}
-  {{ range .enable_user -}}
-  if enable_service {{ . | quote }} "user"; then
-    log INFO "Enabled user service {{ . }}"
   else
     log WARN "Failed to enable {{ . }}: $LAST_ERROR"
   fi
