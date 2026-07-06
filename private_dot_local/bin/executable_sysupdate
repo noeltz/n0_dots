@@ -103,7 +103,7 @@ _uodate_system() {
   echo -e "\n${ORANGE}===>${NC}  Checking for NIX updates...\n"
 
   if command -v nix-env >/dev/null 2>&1; then
-    for pkg in $(nix-env -q --installed); do
+    for pkg in $(nix-env -q --installed | sed 's/-[0-9].*//'); do
         nix-env -f '<nixpkgs>' -uA "$pkg"
     done
   fi
