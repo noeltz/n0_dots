@@ -14,11 +14,10 @@ export LAST_ERROR="${LAST_ERROR:-}"
 # Detects the Linux distribution.
 #
 # Uses /etc/os-release to determine the distribution ID.
-# Handles both quoted (ID="void") and unquoted (ID=arch) formats.
-# Returns lowercase distribution name.
+# Handles both quoted (ID="void") and unquoted formats.
 #
 # Outputs:
-#   Distribution ID to stdout: "arch", "void", "unknown"
+#   Distribution ID to stdout: "void", "unknown"
 # Returns:
 #   0 on success, 1 on failure
 detect_distro() {
@@ -29,7 +28,7 @@ detect_distro() {
     id=$(awk -F= '/^ID=/{gsub(/["'"'"']/,"",$2); print tolower($2); exit}' /etc/os-release 2>/dev/null)
 
     case "$id" in
-      arch|void)
+      void)
         printf '%s\n' "$id"
         return 0
         ;;
@@ -37,18 +36,15 @@ detect_distro() {
 
     id_like=$(awk -F= '/^ID_LIKE=/{gsub(/["'"'"']/,"",$2); print tolower($2); exit}' /etc/os-release 2>/dev/null)
     case "$id_like" in
-      arch|void)
+      void)
         printf '%s\n' "$id_like"
         return 0
         ;;
     esac
 
-    # Fallback: check package manager presence for unknown distros
+    # Fallback: detect Void via its package manager
     if command -v xbps-install &>/dev/null; then
       printf 'void\n'
-      return 0
-    elif command -v pacman &>/dev/null; then
-      printf 'arch\n'
       return 0
     fi
 
@@ -66,7 +62,7 @@ detect_distro() {
 # Maps distribution to its package manager.
 #
 # Outputs:
-#   Package manager name to stdout: "pacman", "xbps", "unsupported"
+#   Package manager name to stdout: "xbps", "unsupported"
 # Returns:
 #   0 on success
 get_pkg_manager() {
@@ -74,9 +70,6 @@ get_pkg_manager() {
   distro=$(detect_distro)
 
   case "$distro" in
-  arch)
-    printf 'pacman\n'
-    ;;
   void)
     printf 'xbps\n'
     ;;

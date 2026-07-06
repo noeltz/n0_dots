@@ -114,8 +114,6 @@ print_box() {
   if ! command -v figlet &>/dev/null; then
     if command_exists xbps-install; then
       sudo xbps-install -y figlet 2>/dev/null || true
-    elif command_exists pacman; then
-      sudo pacman -S --noconfirm figlet 2>/dev/null || true
     fi
   fi
 
