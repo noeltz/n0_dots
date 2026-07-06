@@ -1,0 +1,4 @@
+[Default Applications]
+text/plain=micro.desktop
+text/x-shellscript=micro.desktop
+text/x-python=micro.desktop
