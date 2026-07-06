@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 # dinit-session - launch the user dinit instance supervising the niri session.
 #
-# Spawned by niri (niri.d/50-startup.kdl). dinit runs as a child of niri, so
-# every supervised service inherits niri's environment (WAYLAND_DISPLAY,
-# XDG_RUNTIME_DIR, etc.). On niri exit, dinit gets SIGTERM and cleanly stops
-# all services. Service definitions live in ~/.config/dinit.d/.
+# Spawned by niri (niri.d/50-startup.kdl). Runs as a child of niri, so every
+# supervised service inherits niri's environment (WAYLAND_DISPLAY,
+# XDG_RUNTIME_DIR, etc.). On niri exit, dinit gets SIGTERM and cleanly stops all
+# services. Service definitions live in ~/.config/dinit.d/.
+#
+# Runs dinit in the foreground (niri tracks it as a child). It auto-starts the
+# 'boot' service and, as a non-root user, runs in user mode automatically
+# (control socket at $XDG_RUNTIME_DIR/dinitctl). Logs to ~/.local/state/dinit.log.
 set -euo pipefail
 
-exec dinit --servicedir "${XDG_CONFIG_HOME:-$HOME/.config}/dinit.d"
+conf_dir="${XDG_CONFIG_HOME:-$HOME/.config}/dinit.d"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}"
+mkdir -p "$state_dir"
+
+exec dinit --services-dir "$conf_dir" -l "$state_dir/dinit.log"
