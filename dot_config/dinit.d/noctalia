@@ -1,0 +1,5 @@
+# noctalia - Wayland shell / wallpaper / session UI daemon.
+# Supervised by dinit; auto-restarts on crash.
+type = process
+command = /usr/bin/noctalia
+restart = true

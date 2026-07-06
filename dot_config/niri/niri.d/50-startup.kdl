@@ -1,19 +1,4 @@
-// Core Services
- spawn-at-startup "pipewire"
-// spawn-at-startup "wireplumber"
- spawn-at-startup "pipewire-pulse"
-// spawn-at-startup "walker" "--gapplication-service"
-
-// Desktop Environment Utils
-// spawn-at-startup "nm-applet"
-// spawn-at-startup "blueman-applet"
-
-
-// Productivity & Shell
-spawn-sh-at-startup "reload-portal.sh"
-spawn-sh-at-startup "noctalia"
-spawn-sh-at-startup "kitty -e true"
-
-// Clipboard Management
-// spawn-at-startup "wl-paste" "--type" "text" "--watch" "cliphist" "store"
-// spawn-at-startup "wl-paste" "--type" "image" "--watch" "cliphist" "store"
+// Session services are supervised by dinit (user instance, child of niri).
+// Definitions live in ~/.config/dinit.d/. Only dinit is spawned here; it brings
+// up pipewire, wireplumber, pipewire-pulse, noctalia and the dbus-env one-shot.
+spawn-at-startup "dinit-session"

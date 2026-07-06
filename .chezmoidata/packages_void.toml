@@ -21,6 +21,7 @@ packages = [
   "cliphist",
   "curl",
   "ddcutil",
+  "dinit",
   "elogind",
   "eza",
   "fastfetch",

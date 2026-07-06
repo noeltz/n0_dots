@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# dinit-session - launch the user dinit instance supervising the niri session.
+#
+# Spawned by niri (niri.d/50-startup.kdl). dinit runs as a child of niri, so
+# every supervised service inherits niri's environment (WAYLAND_DISPLAY,
+# XDG_RUNTIME_DIR, etc.). On niri exit, dinit gets SIGTERM and cleanly stops
+# all services. Service definitions live in ~/.config/dinit.d/.
+set -euo pipefail
+
+exec dinit --servicedir "${XDG_CONFIG_HOME:-$HOME/.config}/dinit.d"

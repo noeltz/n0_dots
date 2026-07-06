@@ -1,0 +1,6 @@
+# pipewire-pulse - PulseAudio compatibility layer on top of pipewire.
+# Started after pipewire; auto-restarts on crash.
+type = process
+command = /usr/bin/pipewire-pulse
+restart = true
+depends-on = pipewire

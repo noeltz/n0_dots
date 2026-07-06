@@ -1,0 +1,6 @@
+# wireplumber - pipewire session manager (device & stream management).
+# Started after pipewire; auto-restarts on crash.
+type = process
+command = /usr/bin/wireplumber
+restart = true
+depends-on = pipewire

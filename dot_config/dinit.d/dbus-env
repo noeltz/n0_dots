@@ -1,0 +1,5 @@
+# dbus-env - one-shot: export the session environment (WAYLAND_DISPLAY, XDG_*)
+# to the session bus so dbus-activated services (xdg-desktop-portal, etc.)
+# inherit it. Replaces the former reload-portal.sh pkill hack.
+type = scripted
+command = /usr/bin/dbus-update-activation-environment --all

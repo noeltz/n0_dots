@@ -1,0 +1,5 @@
+# pipewire - core multimedia graph daemon (audio/video routing).
+# Supervised by dinit; auto-restarts on crash.
+type = process
+command = /usr/bin/pipewire
+restart = true

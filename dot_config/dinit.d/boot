@@ -1,0 +1,7 @@
+# Session entry point. dinit auto-starts the service named 'boot'; it brings up
+# the niri user-session daemons in dependency order. The dbus-env one-shot is
+# waited-for (best-effort) so it runs early without failing the whole session.
+type = scripted
+command = /usr/bin/true
+depends-on = [ "pipewire", "wireplumber", "pipewire-pulse", "noctalia" ]
+waits-for = "dbus-env"
