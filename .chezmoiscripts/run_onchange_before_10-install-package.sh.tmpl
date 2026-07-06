@@ -1,30 +1,17 @@
 #!/usr/bin/env bash
-# run_onchange_before_10-install-package.sh - Install/remove packages (cross-distro)
+# run_onchange_before_10-install-package.sh - Install packages (Void Linux + Nix)
 #
-# Installs packages from separate per-distro lists:
-#   .chezmoidata/packages_arch.toml (Arch Linux)
-#   .chezmoidata/packages_void.toml (Void Linux)
-# Arch uses paru/pacman, Void uses xbps-install/xbps-remove.
-# Exit codes: 0 (success), 1 (failure)
+# Installs:
+#   - Void Linux packages via xbps (.chezmoidata/packages_void.toml)
+#   - Nix packages via nix-env into the current user's profile
+#     (.chezmoidata/packages_nix.toml)
+#
+# On Void, once xbps installs the 'nix' package, the script bootstraps the
+# nix-daemon (runit), subscribes to the nixpkgs-unstable channel, and installs
+# the declared Nix packages for the current user.
+# Exit codes: 0 (success)
 
 {{ template "run_onchange_hash" . -}}
-
-{{- $distro := .chezmoi.osRelease.id -}}
-{{- if not (or (eq $distro "arch") (eq $distro "void")) -}}
-  {{- $idLike := "" -}}
-  {{- if hasKey .chezmoi.osRelease "id_like" -}}
-    {{- $idLike = .chezmoi.osRelease.id_like -}}
-  {{- end -}}
-  {{- if contains $idLike "void" -}}
-    {{- $distro = "void" -}}
-  {{- else if contains $idLike "arch" -}}
-    {{- $distro = "arch" -}}
-  {{- else if lookPath "xbps-install" -}}
-    {{- $distro = "void" -}}
-  {{- else if lookPath "pacman" -}}
-    {{- $distro = "arch" -}}
-  {{- end -}}
-{{- end -}}
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -37,104 +24,15 @@ source "$LIB_DIR/.lib-common.sh"
 # --- Template-generated package arrays ---
 
 packages=()
-uninstall=()
-uninstall_force=()
+nix_packages=()
 
-{{- if eq $distro "void" }}
-{{ range .packages_void.packages }}
+{{ range .packages_void.packages -}}
 packages+=({{ . | quote }})
-{{ end }}
-{{- else }}
-{{ range .packages_arch.packages }}
-packages+=({{ . | quote }})
-{{ end }}
-{{- end }}
+{{ end -}}
 
-{{- if eq $distro "arch" }}
-{{ range .packages_arch.uninstall }}
-uninstall+=({{ . | quote }})
-{{ end }}
-{{ range .packages_arch.uninstall_force }}
-uninstall_force+=({{ . | quote }})
-{{ end }}
-{{- end }}
-
-# --- Package removal (Arch only) ---
-
-# Removes packages via paru with the given flags.
-#
-# Filters to currently-installed packages (pacman -Qi), batching the removal.
-# 'clean' uses -Rns (package + unneeded deps + config); 'force' uses -Rdd
-# (ignore dependencies, for conflict replacements). Uses --sudoloop to keep
-# sudo alive. Failures are logged and skipped so installation can proceed.
-#
-# Arguments:
-#   $1 - Removal mode: 'clean' or 'force'
-#   $@ - Package names
-# Returns:
-#   0 always (warns on failure)
-_remove_packages() {
-  local mode="$1"
-  shift
-
-  if [[ $# -eq 0 ]]; then
-    return 0
-  fi
-
-  local -a flags=()
-  case "$mode" in
-  clean) flags=(-Rns) ;;
-  force) flags=(-Rdd) ;;
-  *) die "Invalid removal mode: $mode" ;;
-  esac
-
-  local -a installed=()
-  local pkg
-  for pkg in "$@"; do
-    if pacman -Qi "$pkg" >/dev/null 2>&1; then
-      installed+=("$pkg")
-    else
-      log SKIP "${COLOR_GREEN}${pkg}${COLOR_RESET} not installed"
-    fi
-  done
-
-  if [[ ${#installed[@]} -eq 0 ]]; then
-    return 0
-  fi
-
-  log INFO "Removing (${mode}): ${installed[*]}"
-  if ! paru "${flags[@]}" --noconfirm --sudoloop "${installed[@]}"; then
-    log WARN "Failed to remove one or more packages (${mode}): ${installed[*]}"
-    return 0
-  fi
-
-  log INFO "Removed (${mode}): ${installed[*]}"
-  return 0
-}
-
-# --- Arch Linux installation path ---
-
-_main_pacman() {
-  if ! command -v paru &>/dev/null; then
-    die "paru is not installed. run_once_before_00-install-aur-helper must run first."
-  fi
-
-  log STEP "Syncing package databases"
-  paru -Sy --noconfirm
-
-  if [[ ${#uninstall_force[@]} -gt 0 ]]; then
-    log STEP "Removing conflicting packages (ignore dependencies)"
-    _remove_packages force "${uninstall_force[@]}"
-  fi
-
-  if [[ ${#uninstall[@]} -gt 0 ]]; then
-    log STEP "Removing unwanted packages (clean)"
-    _remove_packages clean "${uninstall[@]}"
-  fi
-
-  log STEP "Installing packages..."
-  paru -S --needed --noconfirm --sudoloop "${packages[@]}" || log WARN "Package installation had failures."
-}
+{{ range .packages_nix.packages -}}
+nix_packages+=({{ . | quote }})
+{{ end -}}
 
 # --- Void Linux installation path ---
 
@@ -161,11 +59,11 @@ _main_xbps() {
   done
 
   if [[ ${#to_install[@]} -eq 0 ]]; then
-    log INFO "All packages already installed"
+    log INFO "All Void packages already installed"
     return 0
   fi
 
-  log STEP "Installing packages..."
+  log STEP "Installing Void packages..."
   if ! sudo xbps-install -y "${to_install[@]}"; then
     log WARN "Package installation had failures. Attempting individual installs..."
     for pkg in "${to_install[@]}"; do
@@ -174,6 +72,107 @@ _main_xbps() {
       fi
     done
   fi
+}
+
+# --- Nix installation path ---
+
+# Activates nix tools for the current shell.
+#
+# Void's nix package ships a profile.d snippet that prepends the nix profile
+# bin dirs to PATH. We source it (and add the default profile dir as a
+# fallback) so nix-env works in the same run that installed nix via xbps.
+#
+# Globals:
+#   PATH - Prepended with nix bin directories when missing
+# Returns:
+#   0 if nix-env is available, 1 otherwise
+_ensure_nix_in_path() {
+  local script
+  for script in /etc/profile.d/nix.sh /etc/profile.d/nix-daemon.sh; do
+    if [[ -r "$script" ]]; then
+      # shellcheck source=/dev/null
+      source "$script"
+      break
+    fi
+  done
+
+  case ":$PATH:" in
+  *":/nix/var/nix/profiles/default/bin:"*) ;;
+  *)
+    if [[ -d /nix/var/nix/profiles/default/bin ]]; then
+      export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+    fi
+    ;;
+  esac
+
+  hash -r 2>/dev/null || true
+  command -v nix-env >/dev/null 2>&1
+}
+
+# Waits for the nix-daemon socket to appear (first-time start latency).
+#
+# Returns:
+#   0 once the socket exists, 1 on timeout
+_await_nix_daemon() {
+  local i
+  for ((i = 0; i < 15; i++)); do
+    [[ -S /nix/var/nix/daemon-socket/socket ]] && return 0
+    sleep 1
+  done
+  log WARN "nix-daemon socket not found after waiting"
+  return 1
+}
+
+# Checks whether a Nix package is present in the current user's profile.
+#
+# nix-env -q lists "name-version"; this matches the leading package name.
+#
+# Arguments:
+#   $1 - Package name
+# Returns:
+#   0 if installed, 1 otherwise
+_nix_pkg_installed() {
+  local pkg="$1"
+  nix-env -q --installed 2>/dev/null | awk '{print $1}' | grep -qE "^${pkg}(-[0-9]|$)"
+}
+
+_main_nix() {
+  if ! _ensure_nix_in_path; then
+    log SKIP "nix not installed - skipping Nix setup"
+    return 0
+  fi
+
+  log STEP "Enabling nix-daemon service"
+  if ! enable_service nix-daemon system; then
+    log WARN "Failed to enable nix-daemon: $LAST_ERROR - skipping Nix packages"
+    return 0
+  fi
+  _await_nix_daemon || true
+
+  if [[ ${#nix_packages[@]} -eq 0 ]]; then
+    log SKIP "No Nix packages declared"
+    return 0
+  fi
+
+  log STEP "Configuring Nix channel (nixpkgs-unstable)"
+  if ! nix-channel --list 2>/dev/null | grep -q "nixpkgs-unstable"; then
+    nix-channel --add https://nixos.org/channels/nixpkgs-unstable
+  fi
+  nix-channel --update || log WARN "nix-channel --update failed"
+
+  log STEP "Installing Nix packages..."
+  local pkg
+  for pkg in "${nix_packages[@]}"; do
+    if _nix_pkg_installed "$pkg"; then
+      log SKIP "${COLOR_GREEN}${pkg}${COLOR_RESET} (nix) exists"
+      continue
+    fi
+    if nix-env -i "$pkg"; then
+      log INFO "Installed (nix): ${COLOR_GREEN}${pkg}${COLOR_RESET}"
+    else
+      log WARN "Failed to install (nix): ${COLOR_YELLOW}${pkg}${COLOR_RESET}"
+    fi
+  done
 }
 
 # --- Main ---
@@ -185,20 +184,13 @@ main() {
 
   print_box "Packages"
 
-  local manager
-  manager=$(get_pkg_manager)
+  if ! command_exists xbps-install; then
+    log WARN "xbps-install not found - not a Void Linux system, skipping package installation"
+    return 0
+  fi
 
-  case "$manager" in
-  pacman)
-    _main_pacman
-    ;;
-  xbps)
-    _main_xbps
-    ;;
-  *)
-    die "Unsupported package manager: $manager"
-    ;;
-  esac
+  _main_xbps
+  _main_nix
 }
 
 main "$@"

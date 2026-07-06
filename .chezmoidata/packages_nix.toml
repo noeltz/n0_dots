@@ -1,0 +1,4 @@
+[packages_nix]
+packages = [
+  "hello",
+]
