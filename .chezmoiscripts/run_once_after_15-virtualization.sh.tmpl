@@ -6,12 +6,14 @@
 #   - adds the current user to the kvm and libvirt groups
 #   - loads the matching KVM kernel module (kvm-intel / kvm-amd) now
 #   - sanity-checks that libvirtd is running
+#   - starts + enables autostart for libvirt's default NAT network
 #
-# Packages (qemu, libvirt, virt-manager, virt-viewer, vsv, polkit, dbus) are
-# declared in .chezmoidata/packages_void.toml and installed by the package
-# script. Services (dbus, libvirtd, virtlockd, virtlogd) are declared in
+# Packages (qemu, libvirt, virt-manager, virt-viewer, vsv, polkit, dbus,
+# dnsmasq) are declared in .chezmoidata/packages_void.toml and installed by the
+# package script. Services (dbus, libvirtd, virtlockd, virtlogd) are declared in
 # .chezmoidata/services.toml and enabled by the services script. This script
-# performs only the host/user configuration.
+# performs only the host/user configuration and brings up the default NAT
+# network (DHCP/DNS served by dnsmasq).
 #
 # Per the Void handbook, with the polkit + dbus packages installed and the dbus
 # service enabled, libvirtd grants passwordless access to members of the
@@ -97,6 +99,28 @@ main() {
     log SKIP "libvirtd is running"
   else
     log WARN "libvirtd is not running - it is enabled by services.toml; check with 'vsv status libvirt'"
+  fi
+
+  # --- libvirt default NAT network (DHCP/DNS served by dnsmasq) ---
+  log STEP "Configuring libvirt default network (NAT)"
+  if ! sudo virsh net-info default >/dev/null 2>&1; then
+    log WARN "'default' network not defined yet (libvirtd may not have initialized it)."
+    log WARN "Re-run later, or: sudo virsh net-define /etc/libvirt/qemu/networks/default.xml"
+  else
+    if sudo virsh net-info default 2>/dev/null | grep -q '^Active:.*yes'; then
+      log SKIP "default network already active"
+    elif sudo virsh net-start default >/dev/null 2>&1; then
+      log INFO "Started default network (NAT 192.168.122.0/24)"
+    else
+      log WARN "Failed to start default network (is dnsmasq installed?)"
+    fi
+    if sudo virsh net-info default 2>/dev/null | grep -q '^Autostart:.*yes'; then
+      log SKIP "default network autostart already enabled"
+    elif sudo virsh net-autostart default >/dev/null 2>&1; then
+      log INFO "Enabled default network autostart"
+    else
+      log WARN "Failed to enable default network autostart"
+    fi
   fi
 
   log INFO "Virtualization host setup complete."

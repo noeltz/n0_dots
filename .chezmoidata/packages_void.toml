@@ -23,6 +23,7 @@ packages = [
   "dbus",
   "ddcutil",
   "dinit",
+  "dnsmasq",
   "elogind",
   "eza",
   "fastfetch",
