@@ -1,6 +1,9 @@
 # System services to enable (runit: symlinked into /var/service). Idempotent.
 enable_system = [
-
+  "dbus",
+  "libvirtd",
+  "virtlockd",
+  "virtlogd",
 ]
 
 # System services to disable and stop (runit: removed from /var/service, sv down). Idempotent.

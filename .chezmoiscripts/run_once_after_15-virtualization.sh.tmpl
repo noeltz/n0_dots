@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# run_once_after_15-virtualization.sh - Configure QEMU/KVM + libvirt host
+#
+# Prepares the Void host for libvirt-managed virtualization:
+#   - verifies CPU hardware virtualization (vmx/svm)
+#   - adds the current user to the kvm and libvirt groups
+#   - loads the matching KVM kernel module (kvm-intel / kvm-amd) now
+#   - sanity-checks that libvirtd is running
+#
+# Packages (qemu, libvirt, virt-manager, virt-viewer, vsv, polkit, dbus) are
+# declared in .chezmoidata/packages_void.toml and installed by the package
+# script. Services (dbus, libvirtd, virtlockd, virtlogd) are declared in
+# .chezmoidata/services.toml and enabled by the services script. This script
+# performs only the host/user configuration.
+#
+# Per the Void handbook, with the polkit + dbus packages installed and the dbus
+# service enabled, libvirtd grants passwordless access to members of the
+# libvirt group by default - so no custom polkit rules are required.
+#
+# Exit codes: 0 (success), 1 (failure)
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+# Detects the platform-appropriate KVM module from CPU flags.
+#
+# Outputs:
+#   "kvm-intel" (Intel vmx), "kvm-amd" (AMD svm), or empty (none/unknown)
+_kvm_module() {
+  if grep -q '^flags.*\bvmx\b' /proc/cpuinfo 2>/dev/null; then
+    printf 'kvm-intel\n'
+  elif grep -q '^flags.*\bsvm\b' /proc/cpuinfo 2>/dev/null; then
+    printf 'kvm-amd\n'
+  fi
+}
+
+# Ensures a user is a member of a group (idempotent).
+#
+# Arguments:
+#   $1 - user
+#   $2 - group
+_ensure_group_member() {
+  local user="$1" group="$2"
+  if id -nG "$user" 2>/dev/null | tr ' ' '\n' | grep -qx "$group"; then
+    log SKIP "User ${COLOR_CYAN}${user}${COLOR_RESET} already in ${group} group"
+    return 0
+  fi
+  log INFO "Adding ${COLOR_CYAN}${user}${COLOR_RESET} to ${group} group"
+  sudo gpasswd -a "$user" "$group" >/dev/null
+}
+
+main() {
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
+  fi
+
+  print_box "Virtualization (QEMU/KVM + libvirt)"
+
+  local user
+  user="${SUDO_USER:-$(id -un)}"
+
+  # --- Hardware virtualization check ---
+  local kvm_mod
+  kvm_mod=$(_kvm_module)
+  if [[ -z "$kvm_mod" ]]; then
+    log WARN "No hardware virtualization flag (vmx/svm) detected in /proc/cpuinfo."
+    log WARN "Enable Intel VT-x / AMD-V in the BIOS/UEFI to use KVM acceleration."
+  else
+    log INFO "Detected virtualization support -> ${COLOR_CYAN}${kvm_mod}${COLOR_RESET}"
+  fi
+
+  # --- Group membership (kvm, libvirt) ---
+  log STEP "Configuring group membership"
+  _ensure_group_member "$user" kvm
+  _ensure_group_member "$user" libvirt
+
+  # --- Load the KVM kernel module now (it autoloads on future boots) ---
+  if [[ -n "$kvm_mod" ]]; then
+    log STEP "Loading KVM kernel module"
+    local mod_under=${kvm_mod//-/_}
+    if lsmod | grep -qE "^${mod_under}( |$)"; then
+      log SKIP "${kvm_mod} already loaded"
+    else
+      sudo modprobe "$kvm_mod" || log WARN "Failed to load ${kvm_mod}"
+      log INFO "Loaded ${kvm_mod}"
+    fi
+  fi
+
+  # --- Verify libvirtd is running (enabled via services.toml) ---
+  log STEP "Checking libvirtd service"
+  if sv check libvirtd >/dev/null 2>&1; then
+    log SKIP "libvirtd is running"
+  else
+    log WARN "libvirtd is not running - it is enabled by services.toml; check with 'vsv status libvirt'"
+  fi
+
+  log INFO "Virtualization host setup complete."
+  if groups "$user" 2>/dev/null | grep -qw libvirt; then
+    log INFO "Log out and back in for group membership to take effect, then run:"
+    log INFO "  virt-manager   # or: virsh -c qemu:///system list --all"
+  fi
+}
+
+main "$@"
