@@ -4,3 +4,4 @@ type = process
 command = /usr/bin/noctalia
 restart = true
 smooth-recovery = true
+waits-for: dbus-env

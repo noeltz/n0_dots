@@ -6,13 +6,17 @@
 # XDG_RUNTIME_DIR, etc.). On niri exit, dinit gets SIGTERM and cleanly stops all
 # services. Service definitions live in ~/.config/dinit.d/.
 #
-# Runs dinit in the foreground (niri tracks it as a child). It auto-starts the
-# 'boot' service and, as a non-root user, runs in user mode automatically
-# (control socket at $XDG_RUNTIME_DIR/dinitctl). Logs to ~/.local/state/dinit.log.
+# Runs dinit in the foreground (niri tracks it as a child). Each session daemon
+# is started explicitly by name so it is independently restartable via
+# `dinitctl restart <name>` (there is deliberately no grouping 'boot' target,
+# which would cascade restarts across the whole stack). As a non-root user it
+# runs in user mode automatically (control socket at $XDG_RUNTIME_DIR/dinitctl).
+# Logs to ~/.local/state/dinit.log.
 set -euo pipefail
 
 conf_dir="${XDG_CONFIG_HOME:-$HOME/.config}/dinit.d"
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}"
 mkdir -p "$state_dir"
 
-exec dinit --services-dir "$conf_dir" -l "$state_dir/dinit.log"
+exec dinit --services-dir "$conf_dir" -l "$state_dir/dinit.log" \
+  pipewire wireplumber pipewire-pulse noctalia dbus-env

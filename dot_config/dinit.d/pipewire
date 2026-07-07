@@ -5,3 +5,4 @@ type = process
 command = /usr/bin/pipewire
 restart = true
 smooth-recovery = true
+waits-for: dbus-env
