@@ -2,7 +2,7 @@
 # run_once_before_00-configure-repos.sh - Void Linux bootstrap
 #
 # Runs a full system update and configures the extra XBPS repositories needed by
-# the package list (nonfree, Noctalia, Vostok). Each step is idempotent. Runs
+# the package list (nonfree, Noctalia, n0). Each step is idempotent. Runs
 # before package installation (before_10) so every repository is available.
 # Runs unattended.
 # Exit codes: 0 (success), 1 (failure)
@@ -18,7 +18,7 @@ source "$LIB_DIR/.lib-common.sh"
 # Adds an XBPS repository via /etc/xbps.d/<name>.conf if not already present.
 #
 # Arguments:
-#   $1 - Repository label (used for the conf filename, e.g. 'vostok')
+#   $1 - Repository label (used for the conf filename, e.g. 'n0')
 #   $2 - Repository URL
 # Returns:
 #   0 on success or already configured, 1 on failure
@@ -67,7 +67,7 @@ main() {
 
   # --- Extra XBPS repositories ---
   _add_xbps_repo "noctalia" "https://universalrepository.pages.dev/void"
-  _add_xbps_repo "vostok"   "https://repo.vostoklinux.org/current"
+  _add_xbps_repo "n0"       "https://github.com/noeltz/n0_void-repo/releases/latest/download"
 
   log INFO "Void Linux bootstrap complete."
 }
