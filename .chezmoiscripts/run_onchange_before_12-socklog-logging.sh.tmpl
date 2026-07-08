@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run_once_before_12-socklog-logging.sh - Provision socklog logging directories
+# run_onchange_before_12-socklog-logging.sh - Provision socklog logging directories
 #
 # On Void/runit the socklog-unix service runs:
 #     exec svlogd -ttt /var/log/socklog/*
@@ -14,8 +14,11 @@
 # the service comes up before the post-install runs). This script makes the
 # chezmoi setup self-sufficient by provisioning the directories with the correct
 # ownership/permissions and (re)starting the logging service so it binds to the
-# real directories. Idempotent. Runs once.
+# real directories. Idempotent. Runs whenever the script changes so previously
+# mis-owned directories are repaired.
 # Exit codes: 0 (success), 1 (failure)
+
+{{ template "run_onchange_hash" . -}}
 
 set -euo pipefail
 shopt -s nullglob globstar
@@ -59,10 +62,17 @@ _provision_socklog_dirs() {
   sudo chown root:socklog "$SOCKLOG_DIR" || log WARN "chown root:socklog ${SOCKLOG_DIR} failed"
   sudo chmod 2750 "$SOCKLOG_DIR" || true
 
+  # Prefer socklog:socklog when a socklog user exists (glibc Void); on musl
+  # Void only the socklog group exists, so fall back to root:socklog.
+  local owner="root:socklog"
+  if id -u socklog >/dev/null 2>&1; then
+    owner="socklog:socklog"
+  fi
+
   local subdir
   for subdir in "${SOCKLOG_SUBDIRS[@]}"; do
     sudo mkdir -p "${SOCKLOG_DIR}/${subdir}"
-    sudo chown socklog:socklog "${SOCKLOG_DIR}/${subdir}" || log WARN "chown socklog:socklog ${SOCKLOG_DIR}/${subdir} failed"
+    sudo chown "$owner" "${SOCKLOG_DIR}/${subdir}" || log WARN "chown ${owner} ${SOCKLOG_DIR}/${subdir} failed"
     sudo chmod 0750 "${SOCKLOG_DIR}/${subdir}" || true
   done
 
