@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# run_onchange_before_11-backlight-service.sh.tmpl
+# Install a runit service that persists screen backlight brightness across
+# reboots: restores each /sys/class/backlight/<dev> from /var/lib/backlight/<dev>
+# on start, then watches actual_brightness via inotify and saves changes.
+# Enabled via services.toml (enable_system: "backlight"). inotify-tools is
+# declared in packages_void.toml.
+{{ template "run_onchange_hash" . -}}
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+main() {
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
+  fi
+
+  print_box "Backlight persistence service"
+
+  local svc_dir="/etc/sv/backlight"
+  sudo mkdir -p "$svc_dir"
+
+  sudo tee "$svc_dir/run" >/dev/null <<'BACKLIGHT_RUN'
+#!/bin/sh
+# Persist backlight brightness across reboots.
+# Restores each /sys/class/backlight/<dev> from /var/lib/backlight/<dev> on
+# start, then watches actual_brightness via inotify and saves changes.
+set -eu
+
+STATE_DIR=/var/lib/backlight
+mkdir -p "$STATE_DIR"
+
+# Wait for at least one backlight device to appear.
+while ! ls /sys/class/backlight/*/max_brightness >/dev/null 2>&1; do
+  sleep 2
+done
+
+restore_device() {
+  bdir="$1"
+  dev="${bdir%/}"; dev="${dev##*/}"
+  saved="$STATE_DIR/$dev"
+  [ -f "$saved" ] || return 0
+  max=$(cat "$bdir/max_brightness" 2>/dev/null) || return 0
+  val=$(cat "$saved" 2>/dev/null) || return 0
+  case "$val" in *[!0-9]*) return 0 ;; esac
+  [ "$val" -gt "$max" ] && val=$max
+  cur=$(cat "$bdir/brightness" 2>/dev/null) || return 0
+  [ "$val" != "$cur" ] && printf '%s\n' "$val" > "$bdir/brightness" 2>/dev/null || true
+}
+
+# Restore all devices on start.
+for bdir in /sys/class/backlight/*/; do
+  restore_device "$bdir"
+done
+
+if ! command -v inotifywait >/dev/null 2>&1; then
+  echo "inotifywait not found (inotify-tools not installed); retrying later" >&2
+  sleep 30
+  exit 1
+fi
+
+# Watch actual_brightness of every device; save the current value on change.
+watch=""
+for bdir in /sys/class/backlight/*/; do
+  watch="$watch ${bdir}actual_brightness"
+done
+
+inotifywait -m -e modify --format '%w' $watch 2>/dev/null | while read -r wpath; do
+  bdir=$(dirname "$wpath")
+  dev="${bdir##*/}"
+  val=$(cat "$bdir/actual_brightness" 2>/dev/null) || continue
+  case "$val" in *[!0-9]*) continue ;; esac
+  tmp="$STATE_DIR/.${dev}.tmp"
+  printf '%s\n' "$val" > "$tmp"
+  mv "$tmp" "$STATE_DIR/$dev"
+done
+BACKLIGHT_RUN
+
+  sudo chmod 755 "$svc_dir/run"
+
+  # If already enabled, restart so a changed run file takes effect immediately.
+  if [ -L /var/service/backlight ]; then
+    sudo sv restart backlight >/dev/null 2>&1 || true
+    log INFO "Restarted backlight service"
+  else
+    log INFO "Installed backlight service (started when services.toml enables it)"
+  fi
+}
+
+main "$@"

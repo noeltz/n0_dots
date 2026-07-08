@@ -50,6 +50,7 @@ packages = [
   "helium-browser",
   "i2c-tools",
   "ImageMagick",
+  "inotify-tools",
   "jq",
   "kcharselect",
   "kde-cli-tools",

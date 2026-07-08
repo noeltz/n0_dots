@@ -1,5 +1,6 @@
 # System services to enable (runit: symlinked into /var/service). Idempotent.
 enable_system = [
+  "backlight",
   "dbus",
   "libvirtd",
   "virtlockd",
