@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# run_onchange_before_13-system-fixes.sh - Misc system service fixes (Void/runit)
+#
+# - avahi-daemon: the daemon chroots into /var/empty but that directory has no
+#   /dev/null, so the post-chroot open() fails ("chroot.c: open() failed: No
+#   such file or directory") and avahi logs an error on every start. Disable the
+#   chroot (avahi still drops privileges to the avahi user) to silence it.
+# - NetworkManager resolvconf: handled by _fix_networkmanager_resolvconf().
+#
+# Idempotent. Runs whenever the script changes so previously mis-configured
+# services are repaired.
+# Exit codes: 0 (success), 1 (failure)
+
+{{ template "run_onchange_hash" . -}}
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+# Disables avahi-daemon's chroot, which fails because /var/empty lacks /dev/null.
+#
+# Globals: none
+# Returns: 0 always
+_fix_avahi_chroot() {
+  local cfg="/etc/avahi/avahi-daemon.conf"
+  if [[ ! -f "$cfg" ]]; then
+    log SKIP "avahi-daemon.conf not found - skipping avahi chroot fix"
+    return 0
+  fi
+
+  log STEP "Disabling avahi-daemon chroot (missing /var/empty/dev/null)"
+  if sudo grep -q '^chroot-directory=' "$cfg" 2>/dev/null; then
+    sudo sed -i 's/^chroot-directory=.*/chroot-directory=/' "$cfg"
+  elif sudo grep -q '^#chroot-directory=' "$cfg" 2>/dev/null; then
+    sudo sed -i 's/^#chroot-directory=.*/chroot-directory=/' "$cfg"
+  else
+    sudo sed -i '/^\[server\]/a chroot-directory=' "$cfg"
+  fi
+
+  if sudo sv status avahi-daemon >/dev/null 2>&1; then
+    sudo sv restart avahi-daemon || log WARN "Failed to restart avahi-daemon"
+  fi
+  return 0
+}
+
+# Fixes NetworkManager's resolvconf commit failures. Implemented after root
+# cause is determined from live diagnostics.
+#
+# Globals: none
+# Returns: 0 always
+_fix_networkmanager_resolvconf() {
+  # TODO: implement once root cause is confirmed.
+  return 0
+}
+
+main() {
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
+  fi
+
+  local init
+  init=$(get_init_system 2>/dev/null || true)
+  if [[ "$init" != "runit" ]]; then
+    log SKIP "Not a runit system (detected: ${init:-unknown}) - skipping system fixes"
+    return 0
+  fi
+
+  print_box "System Fixes"
+
+  _fix_avahi_chroot
+  _fix_networkmanager_resolvconf
+}
+
+main "$@"
