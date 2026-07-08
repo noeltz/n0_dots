@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# run_once_before_12-socklog-logging.sh - Provision socklog logging directories
+#
+# On Void/runit the socklog-unix service runs:
+#     exec svlogd -ttt /var/log/socklog/*
+# If the per-facility subdirectories under /var/log/socklog do not exist when
+# the service starts, the glob does not expand (nullglob is off in /bin/sh) and
+# svlogd receives the literal "/var/log/socklog/*" argument. It then creates a
+# directory literally named "*" and funnels all logs there, leaving the
+# expected subdirs (kernel, everything, daemon, ...) missing.
+#
+# The socklog-void package normally creates these directories via its INSTALL
+# script, but that is not guaranteed (e.g. chroot/container installs, or when
+# the service comes up before the post-install runs). This script makes the
+# chezmoi setup self-sufficient by provisioning the directories with the correct
+# ownership/permissions and (re)starting the logging service so it binds to the
+# real directories. Idempotent. Runs once.
+# Exit codes: 0 (success), 1 (failure)
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+# Per-facility log directories expected by the socklog-unix log/run glob.
+readonly SOCKLOG_DIR="/var/log/socklog"
+readonly SOCKLOG_SUBDIRS=(
+  cron daemon debug errors everything kernel lpr mail
+  messages remote-udp secure tty12 user xbps
+)
+
+# Provisions /var/log/socklog and its per-facility subdirs with the ownership
+# and permissions used by the socklog-void INSTALL script.
+#
+# Globals:
+#   SOCKLOG_DIR, SOCKLOG_SUBDIRS
+# Returns:
+#   0 on success, 1 on failure
+_provision_socklog_dirs() {
+  if ! command -v sv &>/dev/null || [[ ! -d /etc/sv/socklog-unix ]]; then
+    log WARN "socklog-unix service not present - skipping logging directory setup"
+    return 0
+  fi
+
+  # The socklog group/user is created by the socklog-void package. getent is
+  # not available on every libc, so probe /etc/group directly (portable).
+  if ! grep -q '^socklog:' /etc/group 2>/dev/null; then
+    log WARN "socklog group missing - is the 'socklog-void' package installed?"
+    return 1
+  fi
+
+  sudo mkdir -p "$SOCKLOG_DIR" || {
+    log WARN "Failed to create ${SOCKLOG_DIR}"
+    return 1
+  }
+  sudo chown root:socklog "$SOCKLOG_DIR" || log WARN "chown root:socklog ${SOCKLOG_DIR} failed"
+  sudo chmod 2750 "$SOCKLOG_DIR" || true
+
+  local subdir
+  for subdir in "${SOCKLOG_SUBDIRS[@]}"; do
+    sudo mkdir -p "${SOCKLOG_DIR}/${subdir}"
+    sudo chown socklog:socklog "${SOCKLOG_DIR}/${subdir}" || log WARN "chown socklog:socklog ${SOCKLOG_DIR}/${subdir} failed"
+    sudo chmod 0750 "${SOCKLOG_DIR}/${subdir}" || true
+  done
+
+  log INFO "Provisioned socklog logging directories under ${SOCKLOG_DIR}"
+  return 0
+}
+
+# If a previous broken startup created a literal "*" directory (the unexpanded
+# glob), remove it and restart the logging service so svlogd binds to the real
+# directories.
+#
+# Globals:
+#   SOCKLOG_DIR
+# Returns:
+#   0 always
+_cleanup_broken_glob_dir() {
+  local stray="${SOCKLOG_DIR}/*"
+  if [[ -d "$stray" ]]; then
+    log WARN "Removing stray glob directory (${stray}) from a broken startup"
+    sudo rm -rf "$stray"
+    if sudo sv status socklog-unix >/dev/null 2>&1; then
+      log STEP "Restarting socklog-unix logging service"
+      sudo sv restart socklog-unix || log WARN "Failed to restart socklog-unix"
+    fi
+  fi
+  return 0
+}
+
+main() {
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
+  fi
+
+  local init
+  init=$(get_init_system 2>/dev/null || true)
+  if [[ "$init" != "runit" ]]; then
+    log SKIP "Not a runit system (detected: ${init:-unknown}) - skipping socklog setup"
+    return 0
+  fi
+
+  print_box "Socklog Logging"
+
+  _provision_socklog_dirs || return 1
+  _cleanup_broken_glob_dir
+
+  log STEP "Enabling socklog-unix service"
+  if enable_service socklog-unix system; then
+    log INFO "socklog-unix enabled"
+  else
+    log WARN "Failed to enable socklog-unix: ${LAST_ERROR:-unknown error}"
+  fi
+}
+
+main "$@"
