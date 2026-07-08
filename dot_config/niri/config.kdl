@@ -3,11 +3,5 @@
 // Load all modules via the index
 include "niri.d/_index.kdl"
 
-// --- Global Overrides & Environment ---
-// Settings that you might change frequently or that depend on the specific machine
-environment {
-    DISPLAY ":1"
-}
-
 // Auto-generated colors from noctalia: DO NOT EDIT
 include "noctalia.kdl"
