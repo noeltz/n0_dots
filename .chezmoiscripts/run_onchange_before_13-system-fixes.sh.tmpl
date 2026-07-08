@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # run_onchange_before_13-system-fixes.sh - Misc system service fixes (Void/runit)
 #
-# - avahi-daemon chroot: avahi chroots into /var/empty, which lacks /dev/null,
-#   causing "chroot.c: open() failed". We provide the /dev/null char device
-#   inside the chroot. Separately, avahi cannot see the host /etc/resolv.conf
-#   from inside the chroot ("Failed to open /etc/resolv.conf: Invalid argument");
-#   an avahi-resolv runit service bind-mounts the host resolv.conf into the
-#   chroot and restarts avahi so it can read upstream DNS servers.
+# - avahi-daemon chroot: avahi chroots into /var/empty by default, which lacks
+#   /dev/null ("chroot.c: open() failed") and cannot see the host
+#   /etc/resolv.conf ("Failed to open /etc/resolv.conf: Invalid argument").
+#   Provisioning those inside the chroot is fragile across reboots, so we
+#   disable the chroot (chroot-directory=/) — avahi then reads both files
+#   directly. It still drops to the unprivileged avahi user.
 # - NetworkManager resolvconf: handled by _fix_networkmanager_resolvconf().
 #
 # Idempotent. Runs whenever the script changes so previously mis-configured
@@ -23,14 +23,16 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
-# Fixes avahi-daemon's "chroot.c: open() failed" error.
+# Disables avahi-daemon's chroot.
 #
-# avahi chroots into /var/empty, but that directory has no /dev/null, so the
-# post-chroot open() fails and avahi logs an error on every start (it still
-# runs). Provide a /dev/null char device inside the chroot so the default
-# chroot works and the error disappears, preserving the chroot hardening.
-# Also drop any empty "chroot-directory=" line (an empty value makes
-# chroot("") fail and prevents avahi from starting at all).
+# avahi chroots into /var/empty by default, which lacks /dev/null (causing
+# "chroot.c: open() failed") and cannot see the host /etc/resolv.conf (causing
+# "Failed to open /etc/resolv.conf: Invalid argument"). Provisioning those
+# inside the chroot is fragile across reboots (boot races, missing device
+# nodes, bind mounts). The simplest robust fix is to not chroot at all: with
+# chroot-directory=/ avahi reads /dev/null and /etc/resolv.conf directly. avahi
+# still drops privileges to the unprivileged avahi user, so the only loss is the
+# chroot filesystem-isolation hardening.
 #
 # Globals: none
 # Returns: 0 always
@@ -41,71 +43,20 @@ _fix_avahi_chroot() {
     return 0
   fi
 
-  log STEP "Providing /var/empty/dev/null for avahi-daemon chroot"
+  log STEP "Disabling avahi-daemon chroot (set chroot-directory=/)"
 
-  # Remove a previously-added empty chroot-directory= line if present.
+  # Drop any previously-added empty chroot-directory= line (an empty value made
+  # chroot("") fail and prevented avahi from starting).
   sudo sed -i '/^chroot-directory=$/d' "$cfg"
 
-  # Create the chroot's /dev/null char device (1,3).
-  sudo mkdir -p /var/empty/dev
-  if [[ ! -c /var/empty/dev/null ]]; then
-    sudo mknod /var/empty/dev/null c 1 3
-    sudo chmod 666 /var/empty/dev/null
+  if sudo grep -q '^chroot-directory=' "$cfg" 2>/dev/null; then
+    sudo sed -i 's|^chroot-directory=.*|chroot-directory=/|' "$cfg"
+  else
+    sudo sed -i '/^\[server\]/a chroot-directory=/' "$cfg"
   fi
 
   if sudo sv status avahi-daemon >/dev/null 2>&1; then
     sudo sv restart avahi-daemon || log WARN "Failed to restart avahi-daemon"
-  fi
-  return 0
-}
-
-# Installs a runit service (avahi-resolv) that bind-mounts the host
-# /etc/resolv.conf into avahi-daemon's chroot (/var/empty) so avahi can read
-# upstream DNS servers. Without it, avahi logs "Failed to open /etc/resolv.conf:
-# Invalid argument" because it is chrooted and cannot see the host file. The
-# service also restarts avahi-daemon once the mount is in place.
-#
-# Globals: none
-# Returns: 0 always
-_fix_avahi_resolvconf() {
-  local svc_dir="/etc/sv/avahi-resolv"
-  sudo mkdir -p "$svc_dir"
-
-  log STEP "Installing avahi-resolv bind-mount service"
-  sudo tee "$svc_dir/run" >/dev/null <<'AVAHID_RUN'
-#!/bin/sh
-# Bind-mount the host resolv.conf into avahi-daemon's chroot (/var/empty) so
-# avahi can read upstream DNS servers. Runs once at boot; the process then
-# blocks to keep the runit service up, and restarts avahi-daemon so it picks
-# up the mounted file.
-set -e
-
-mkdir -p /var/empty/etc
-
-# Wait for NetworkManager/resolvconf to create the real resolv.conf.
-i=0
-while [ ! -e /etc/resolv.conf ] && [ "$i" -lt 30 ]; do
-  sleep 1
-  i=$((i + 1))
-done
-
-SRC=$(readlink -f /etc/resolv.conf 2>/dev/null || true)
-if [ -n "$SRC" ] && [ -e "$SRC" ]; then
-  mount --bind "$SRC" /var/empty/etc/resolv.conf 2>/dev/null || true
-fi
-
-# avahi reads resolv.conf at startup; restart it now that the file is mounted.
-sv restart avahi-daemon 2>/dev/null || true
-
-exec tail -f /dev/null
-AVAHID_RUN
-
-  sudo chmod 755 "$svc_dir/run"
-
-  if enable_service avahi-resolv system; then
-    log INFO "avahi-resolv service enabled"
-  else
-    log WARN "Failed to enable avahi-resolv: ${LAST_ERROR:-unknown error}"
   fi
   return 0
 }
@@ -155,7 +106,6 @@ main() {
   print_box "System Fixes"
 
   _fix_avahi_chroot
-  _fix_avahi_resolvconf
   _fix_networkmanager_resolvconf
 }
 

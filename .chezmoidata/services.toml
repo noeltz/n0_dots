@@ -1,6 +1,5 @@
 # System services to enable (runit: symlinked into /var/service). Idempotent.
 enable_system = [
-  "avahi-resolv",
   "backlight",
   "dbus",
   "libvirtd",
