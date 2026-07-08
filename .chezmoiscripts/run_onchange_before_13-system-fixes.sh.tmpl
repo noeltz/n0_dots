@@ -47,13 +47,33 @@ _fix_avahi_chroot() {
   return 0
 }
 
-# Fixes NetworkManager's resolvconf commit failures. Implemented after root
-# cause is determined from live diagnostics.
+# Forces NetworkManager's rc-manager to "symlink" so it writes /etc/resolv.conf
+# directly instead of shelling out to resolvconf.
+#
+# On this setup /etc/resolv.conf is already a symlink to
+# /run/NetworkManager/resolv.conf, so NM manages DNS itself. But with the
+# resolvconf binary present, NM's default rc-manager auto-detects "resolvconf"
+# and fails to commit DNS ("resolvconf failed with status 256") even though DNS
+# otherwise works. Pinning "symlink" stops NM from invoking resolvconf.
 #
 # Globals: none
 # Returns: 0 always
 _fix_networkmanager_resolvconf() {
-  # TODO: implement once root cause is confirmed.
+  local dropin_dir="/etc/NetworkManager/conf.d"
+  local dropin="${dropin_dir}/zz-resolvconf.conf"
+
+  sudo mkdir -p "$dropin_dir"
+  if sudo grep -q '^rc-manager=' "$dropin" 2>/dev/null; then
+    log INFO "NetworkManager rc-manager already pinned; skipping"
+    return 0
+  fi
+
+  log STEP "Pinning NetworkManager rc-manager=symlink (avoid resolvconf failures)"
+  printf '[main]\nrc-manager=symlink\n' | sudo tee "$dropin" >/dev/null
+
+  if sudo sv status NetworkManager >/dev/null 2>&1; then
+    sudo sv restart NetworkManager || log WARN "Failed to restart NetworkManager"
+  fi
   return 0
 }
 
