@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# run_onchange_before_95-flatpak.sh - Initialize the Flathub remote
+#
+# Adds the Flathub repository so the installed Flatpak runtime is actually
+# usable for daily applications. Idempotent: skips if the remote already
+# exists. Flatpak itself is installed by run_onchange_before_10-install-package.
+# Exit codes: 0 (success), 1 (failure)
+
+{{ template "run_onchange_hash" . -}}
+
+set -euo pipefail
+shopt -s nullglob globstar
+
+readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+
+# shellcheck source=/dev/null
+source "$LIB_DIR/.lib-common.sh"
+
+main() {
+  if ! command -v flatpak &>/dev/null; then
+    log WARN "flatpak not installed; skipping Flathub remote setup"
+    return 0
+  fi
+
+  if ! request_sudo; then
+    die "Failed to obtain sudo access"
+  fi
+
+  print_box "Flatpak"
+
+  if flatpak remote-list 2>/dev/null | grep -q '^flathub'; then
+    log SKIP "Flathub remote already configured"
+    return 0
+  fi
+
+  log STEP "Adding Flathub remote"
+  if sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo; then
+    log INFO "Flathub remote added"
+  else
+    LAST_ERROR="Failed to add Flathub remote"
+    die "$LAST_ERROR"
+  fi
+}
+
+main "$@"

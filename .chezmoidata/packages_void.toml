@@ -124,6 +124,9 @@ packages = [
   "xdg-desktop-portal-gnome",
   "xdg-desktop-portal-gtk",
   "xdg-desktop-portal-wlr",
+  # NOTE: xdg-desktop-portal-kde is intentionally omitted — this is a niri
+  # (wlroots) session; the GNOME backend is required by niri for screen
+  # sharing, and the KDE backend is unnecessary and can interfere.
   "xdg-user-dirs",
   "xsettingsd",
   "xtools",
