@@ -2,11 +2,16 @@
 # run_onchange_before_13-system-fixes.sh - Misc system service fixes (Void/runit)
 #
 # - avahi-daemon chroot: avahi chroots into /var/empty by default, which lacks
-#   /dev/null ("chroot.c: open() failed") and cannot see the host
-#   /etc/resolv.conf ("Failed to open /etc/resolv.conf: Invalid argument").
-#   Provisioning those inside the chroot is fragile across reboots, so we
-#   disable the chroot (chroot-directory=/) — avahi then reads both files
-#   directly. It still drops to the unprivileged avahi user.
+#   /dev/null ("chroot.c: open() failed") and cannot follow the host
+#   /etc/resolv.conf when it is a symlink ("Failed to open /etc/resolv.conf:
+#   Invalid argument"). Setting "chroot-directory=/" is rejected by this avahi
+#   build ("Invalid configuration key"), which makes the daemon fail to start
+#   entirely, so we never touch that key. Instead we populate the default jail
+#   (/var/empty) with the device/files avahi expects. The chroot is preserved
+#   (avahi still drops to the unprivileged avahi user) and the errors are
+#   silenced.
+# - dangling /var/service symlinks: a leftover link whose target under
+#   /etc/sv no longer exists (e.g. sv-netmount) errors at every boot.
 # - NetworkManager resolvconf: handled by _fix_networkmanager_resolvconf().
 #
 # Idempotent. Runs whenever the script changes so previously mis-configured
@@ -23,16 +28,17 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
-# Disables avahi-daemon's chroot.
+# Fixes avahi-daemon's chroot jail instead of disabling the chroot.
 #
 # avahi chroots into /var/empty by default, which lacks /dev/null (causing
-# "chroot.c: open() failed") and cannot see the host /etc/resolv.conf (causing
-# "Failed to open /etc/resolv.conf: Invalid argument"). Provisioning those
-# inside the chroot is fragile across reboots (boot races, missing device
-# nodes, bind mounts). The simplest robust fix is to not chroot at all: with
-# chroot-directory=/ avahi reads /dev/null and /etc/resolv.conf directly. avahi
-# still drops privileges to the unprivileged avahi user, so the only loss is the
-# chroot filesystem-isolation hardening.
+# "chroot.c: open() failed") and cannot follow the host /etc/resolv.conf when it
+# is a symlink (causing "Failed to open /etc/resolv.conf: Invalid argument").
+# Setting "chroot-directory=/" is rejected by this avahi build ("Invalid
+# configuration key"), so we never touch that key. Instead we populate the
+# default jail with a /dev/null node and a copy of resolv.conf. The chroot is
+# preserved (avahi still drops to the unprivileged avahi user) and the errors
+# are silenced. Any previously-added chroot-directory= line is removed so a
+# broken config from an earlier run does not prevent avahi from starting.
 #
 # Globals: none
 # Returns: 0 always
@@ -43,21 +49,42 @@ _fix_avahi_chroot() {
     return 0
   fi
 
-  log STEP "Disabling avahi-daemon chroot (set chroot-directory=/)"
+  log STEP "Fixing avahi-daemon chroot jail (/var/empty)"
 
-  # Drop any previously-added empty chroot-directory= line (an empty value made
-  # chroot("") fail and prevented avahi from starting).
-  sudo sed -i '/^chroot-directory=$/d' "$cfg"
+  # Remove any chroot-directory= line: it is invalid on this build and would
+  # make the whole config fail to parse (daemon exits with "Invalid
+  # configuration key").
+  sudo sed -i '/^chroot-directory=/d' "$cfg"
 
-  if sudo grep -q '^chroot-directory=' "$cfg" 2>/dev/null; then
-    sudo sed -i 's|^chroot-directory=.*|chroot-directory=/|' "$cfg"
-  else
-    sudo sed -i '/^\[server\]/a chroot-directory=/' "$cfg"
+  # Populate the default chroot jail so avahi finds what it expects.
+  sudo mkdir -p /var/empty/dev /var/empty/etc
+  if [[ ! -e /var/empty/dev/null ]]; then
+    sudo mknod /var/empty/dev/null c 1 3
   fi
+  sudo chmod 666 /var/empty/dev/null
+  sudo cp -f /etc/resolv.conf /var/empty/etc/resolv.conf 2>/dev/null || true
 
   if sudo sv status avahi-daemon >/dev/null 2>&1; then
     sudo sv restart avahi-daemon || log WARN "Failed to restart avahi-daemon"
   fi
+  return 0
+}
+
+# Removes dangling /var/service symlinks (target under /etc/sv no longer
+# exists). A leftover like sv-netmount produces a "file does not exist" error at
+# every boot and clutters sv status output. Only symlinks whose target is gone
+# are removed; valid service links are left untouched.
+#
+# Globals: none
+# Returns: 0 always
+_prune_dead_service_symlinks() {
+  log STEP "Removing dangling /var/service symlinks"
+  local l
+  for l in /var/service/*; do
+    [[ -L "$l" ]] || continue
+    [[ -e "$l" ]] && continue
+    sudo rm -f "$l" && log INFO "removed dangling service symlink: $(basename "$l")"
+  done
   return 0
 }
 
@@ -107,6 +134,7 @@ main() {
 
   _fix_avahi_chroot
   _fix_networkmanager_resolvconf
+  _prune_dead_service_symlinks
 }
 
 main "$@"
