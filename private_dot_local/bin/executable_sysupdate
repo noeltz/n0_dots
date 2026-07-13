@@ -133,6 +133,32 @@ _update_nix() {
 
 # --- Detect services running outdated binaries -------------------------------
 
+# Returns 0 if pid runs a stale on-disk binary/library, 1 otherwise.
+#
+# A process is stale when its exe is deleted, or one of its mapped shared
+# libraries (a real path under the filesystem) no longer exists on disk. memfd,
+# /dev, /run, /tmp and anon mappings are reported by the kernel as "(deleted)"
+# too, but are in-memory and never "outdated binaries", so they are excluded.
+_proc_stale() {
+  local pid="$1" use_sudo="${2:-false}" run="" exe lib line
+  [[ "$use_sudo" == "true" ]] && run="sudo"
+
+  exe=$($run readlink "/proc/$pid/exe" 2>/dev/null) || return 1
+  [[ "$exe" == *"(deleted)" ]] && return 0
+
+  while IFS= read -r line; do
+    lib=$(printf '%s' "$line" | sed -E 's/^[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ +//')
+    [[ -z "$lib" ]] && continue
+    case "$lib" in
+      /memfd:*|/dev/*|/run/*|/tmp/*|/\[*|\anon*) continue ;;
+    esac
+    [[ "$lib" == /* ]] || continue
+    [[ -e "$lib" ]] && continue
+    return 0
+  done < <($run grep -E '\.so(\.[0-9A-Za-z_+-]+)* \(deleted\)$' "/proc/$pid/maps" 2>/dev/null)
+  return 1
+}
+
 # Resolves the dinit service name whose `command` matches the given exe path.
 _dinit_service_for() {
   local exe="$1" ddir f cmd first
@@ -167,10 +193,10 @@ _scan_services() {
       svc=${line#run: }; svc=${svc%%:*}
       pid=$(printf '%s' "$line" | grep -oP 'pid \K[0-9]+' | head -n1)
       [[ -n "$pid" ]] || continue
-      exe=$(sudo readlink "/proc/$pid/exe" 2>/dev/null) || continue
-      if [[ "$exe" == *"(deleted)" ]] || sudo grep -q '(deleted)' "/proc/$pid/maps" 2>/dev/null; then
-        [[ -z "${rseen[$svc]:-}" ]] && { RUNIT_STALE+=("$svc"); rseen[$svc]=1; }
-      fi
+       exe=$(sudo readlink "/proc/$pid/exe" 2>/dev/null) || continue
+       if _proc_stale "$pid" true; then
+         [[ -z "${rseen[$svc]:-}" ]] && { RUNIT_STALE+=("$svc"); rseen[$svc]=1; }
+       fi
     done
   fi
 
@@ -179,18 +205,18 @@ _scan_services() {
   dinit_pid=$(pgrep -x dinit 2>/dev/null | head -n1)
   if [[ -n "$dinit_pid" ]]; then
     local -A dseen=()
-    for pid in $(ps --ppid "$dinit_pid" -o pid= 2>/dev/null); do
-      exe=$(readlink "/proc/$pid/exe" 2>/dev/null) || continue
-      if [[ "$exe" == *"(deleted)" ]] || grep -q '(deleted)' "/proc/$pid/maps" 2>/dev/null; then
-        clean=${exe% \(deleted\)}
-        dsvc=$(_dinit_service_for "$clean")
-        if [[ -n "$dsvc" ]]; then
-          [[ -z "${dseen[$dsvc]:-}" ]] && { DINIT_STALE+=("$dsvc"); dseen[$dsvc]=1; }
-        else
-          UNSUP+=("dinit/$pid/${clean##*/}")
-        fi
-      fi
-    done
+     for pid in $(ps --ppid "$dinit_pid" -o pid= 2>/dev/null); do
+       exe=$(readlink "/proc/$pid/exe" 2>/dev/null) || continue
+       if _proc_stale "$pid"; then
+         clean=${exe% \(deleted\)}
+         dsvc=$(_dinit_service_for "$clean")
+         if [[ -n "$dsvc" ]]; then
+           [[ -z "${dseen[$dsvc]:-}" ]] && { DINIT_STALE+=("$dsvc"); dseen[$dsvc]=1; }
+         else
+           UNSUP+=("dinit/$pid/${clean##*/}")
+         fi
+       fi
+     done
   fi
 }
 
