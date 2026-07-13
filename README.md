@@ -7,6 +7,7 @@
   <img src="https://img.shields.io/badge/Niri-7C3AED?style=flat&logoColor=white&labelColor=1a1b26" alt="Niri">
   <img src="https://img.shields.io/badge/Noctalia_v5-A78BFA?style=flat&logoColor=white&labelColor=1a1b26" alt="Noctalia v5">
   <img src="https://img.shields.io/badge/Zsh-7C3AED?style=flat&logo=gnubash&logoColor=white&labelColor=1a1b26" alt="Zsh">
+  <img src="https://img.shields.io/badge/Nix-7C3AED?style=flat&logo=nixos&logoColor=white&labelColor=1a1b26" alt="Nix">
   <img src="https://img.shields.io/badge/Chezmoi-565f89?style=flat&logoColor=white&labelColor=1a1b26" alt="Chezmoi">
 </p>
 
@@ -15,6 +16,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Quick_Start-7C3AED?style=for-the-badge" alt="Quick Start">
 </p>
+
+A declarative, Void-Linux-only desktop setup managed with [chezmoi](https://chezmoi.io): Niri (Wayland) with the Noctalia shell, a dinit-supervised user session, Nix packages alongside XBPS, and libvirt virtualization.
 
 ```bash
 sh -c "$(curl -fsLS https://get.chezmoi.io)" -- init --apply https://github.com/noeltz/n0_dots.git
@@ -38,11 +41,16 @@ chezmoi init --apply https://github.com/noeltz/n0_dots.git
 
 | Category | What Gets Configured |
 |----------|---------------------|
-| **Repositories** | XBPS: nonfree, Noctalia, Vostok · Nix (nixpkgs-unstable) |
-| **Packages** | ~120 Void (xbps) + Nix packages declaratively managed via `packages_void.toml` / `packages_nix.toml` |
+| **Repositories** | XBPS: nonfree, Noctalia, n0 (self-hosted) · Nix channel (nixpkgs-unstable) |
+| **Packages** | ~133 Void (xbps) + Nix packages via `packages_void.toml` / `packages_nix.toml` |
 | **Shell** | Zsh as default shell, Starship prompt, Sheldon plugin manager |
 | **Window Manager** | Niri (Wayland) with Noctalia theme |
-| **Display Manager** | greetd with tuigreet |
+| **Display Manager** | greetd + tuigreet (vt=7, `_greeter` user) |
+| **Session Supervision** | User **dinit** instance spawned by niri, supervising pipewire, wireplumber, pipewire-pulse and noctalia — auto-restart, dependency ordering, per-service `dinitctl restart <name>` |
+| **System Services** | runit services declaratively enabled/disabled via `services.toml` |
+| **Logging** | socklog per-facility system logging (runit) |
+| **Virtualization** | QEMU/KVM + libvirt host (virt-manager, virt-viewer, vsv; user added to `kvm`/`libvirt` groups) |
+| **Backlight** | Brightness saved on change and restored across reboots (runit + inotify) |
 | **Terminal** | Ghostty with shell integration |
 | **Fonts** | Maple Mono Nerd Font, JetBrains Mono, Cascadia Code, Inter, Roboto, Noto Emoji |
 | **Icons** | Papirus icon theme, Tabler icons |
@@ -50,9 +58,9 @@ chezmoi init --apply https://github.com/noeltz/n0_dots.git
 | **Browser** | Helium (Chromium-based) with Widevine DRM |
 | **Editor** | VSCodium with matugen dynamic theme |
 | **Developer Tools** | Git, GitHub CLI, Neovim, LazyGit, Yazi, Zoxide, FZF, ripgrep, Bat, Eza |
-| **Services** | Declarative service enable/disable via `services.toml` (runit) |
+| **Maintenance** | `sysupdate` — update xbps + Nix + Flatpak, report services needing restart, reboot check |
 | **XDG** | Full XDG Base Directory compliance, autostart management |
-| **Secrets** | Proton Pass CLI integration |
+| **Secrets** | Proton Pass CLI integration (non-fatal if unavailable) |
 | **Wallpapers** | Auto-downloaded from GitHub releases |
 
 <br>
@@ -71,8 +79,8 @@ This single command will:
 1. Install chezmoi
 2. Clone the repo
 3. Apply all dotfiles and run setup scripts
-4. Configure XBPS repositories (nonfree, Noctalia, Vostok), install all packages (xbps + Nix), fonts, icons, themes
-5. Configure greetd, shell, git, GitHub CLI, Proton Pass
+4. Configure XBPS repositories (nonfree, Noctalia, n0), install all packages (xbps + Nix), fonts, icons, themes
+5. Set up runit system services, the dinit user-session supervisor, backlight persistence, the libvirt host, greetd, shell, git, GitHub CLI and Proton Pass
 
 ### Pull Latest Changes and Apply
 
@@ -81,6 +89,13 @@ chezmoi update
 ```
 
 This pulls the latest changes from the repo and applies them. Scripts run only when their source files change (hash-based detection).
+
+### Update the System
+
+```bash
+sysupdate            # xbps + Nix + Flatpak; reports services needing restart and reboots
+sysupdate -y         # non-interactive
+```
 
 ### Preview Changes Before Applying
 
@@ -158,6 +173,13 @@ chezmoi forget ~/.local/bin/old-script.sh
   <img src="https://img.shields.io/badge/How_It_Works-7C3AED?style=for-the-badge" alt="How It Works">
 </p>
 
+### Session & services
+
+Two separate supervisors are in play:
+
+- **System services — runit** (Void's init). Enabled via `services.toml` (`dbus`, `libvirtd`, `virtlockd`, `virtlogd`, `backlight`, …). Manage with `vsv` or `sv`.
+- **User session services — dinit**. niri spawns a user dinit instance (`~/.local/bin/dinit-session`) pointed at `~/.config/dinit.d/`, which supervises pipewire, wireplumber, pipewire-pulse, noctalia and the `dbus-env` one-shot. Each is started explicitly so it is independently restartable: `dinitctl restart noctalia`. On niri exit, dinit gets SIGTERM and stops all session services.
+
 ### Script Execution Order
 
 chezmoi runs scripts in a deterministic order:
@@ -170,31 +192,40 @@ chezmoi runs scripts in a deterministic order:
 
 | Phase | Script | Purpose |
 |-------|--------|---------|
-| before | `00-configure-repos` | Configure Void XBPS repositories (nonfree, Noctalia, Vostok) |
-| before | `10-install-package` | Install packages from `packages_void.toml` / `packages_nix.toml` |
+| before | `00-configure-repos` | Configure Void XBPS repositories (nonfree, Noctalia, n0) + full system update |
+| before | `10-install-package` | Install packages from `packages_void.toml` (xbps) + `packages_nix.toml` (nix-env) |
+| before | `11-backlight-service` | Install the backlight-persistence runit service |
+| before | `12-socklog-logging` | Provision socklog per-facility log directories |
+| before | `13-system-fixes` | Void/runit service fixes (e.g. avahi chroot) |
 | before | `20_wallpapers` | Download wallpapers from GitHub releases |
+| before | `50_extra_packages` | Install packages outside the package manager |
 | after | `04_login_manager` | Configure greetd display manager |
+| after | `10-services` | Enable/disable runit system services |
 | after | `11-fonts_and_icons` | Install Maple Mono, Papirus, Tabler |
-| after | `20-gtk-settings` | Apply GTK settings from `gtk.toml` |
-| after | `30-vscode-theme` | Install matugen VSCode theme |
-| after | `10-services` | Enable/disable services (runit) |
 | after | `11-xdg-autostart` | Disable unwanted XDG autostart entries |
+| after | `15-virtualization` | Configure QEMU/KVM + libvirt host |
+| after | `30-vscode-theme` | Install matugen VSCode theme |
 | after | `80-init-proton-pass-cli` | Install and authenticate Proton Pass CLI |
 | after | `81-init-github` | Authenticate GitHub CLI, configure git |
+| after | `85-gtk-settings` | Apply GTK settings from `gtk.toml` |
 | after | `91-helium-browser` | Configure Helium browser (Widevine, policies) |
 | after | `99-switch-shell` | Switch default shell to zsh |
 | after | `99-restart-notice` | Display restart notification |
 
+`run_once_*` scripts execute once per machine; `run_onchange_*` re-run when their source hash changes.
+
 ### Data-Driven Configuration
 
-All configuration is declarative via `.chezmoidata/*.toml`:
+Most configuration is declarative via `.chezmoidata/*.toml`:
 
 | File | Controls |
 |------|----------|
 | `packages_void.toml`, `packages_nix.toml` | Void (xbps) and Nix package lists |
-| `services.toml` | Service enable/disable (runit) |
+| `services.toml` | runit system services to enable/disable |
 | `autostart.toml` | XDG autostart entries to disable |
 | `gtk.toml` | GTK theme, fonts, cursor, Nautilus settings |
+
+The dinit user-session service definitions live as plain files in `dot_config/dinit.d/` (→ `~/.config/dinit.d/`).
 
 ### Library Functions
 
@@ -202,7 +233,7 @@ Hidden library scripts in `.chezmoiscripts/lib/`:
 
 | Library | Purpose |
 |---------|---------|
-| `.lib-common.sh` | Logging, sudo, config updates, service management, backups |
+| `.lib-common.sh` | Logging, sudo keepalive, config updates, service management, backups |
 | `.lib-platform.sh` | Distribution, package-manager and init-system detection |
 | `.lib-runit.sh` | Runit service enable/disable/stop |
 
@@ -220,9 +251,13 @@ Install chezmoi first:
 sudo xbps-install -S chezmoi
 ```
 
+### A dinit session service won't restart independently
+
+Make sure no grouping `boot` target depends on the daemons (that causes restart cascades). Each session service must be explicitly activated by `dinit-session`; check with `dinitctl list`.
+
 ### Scripts re-run on every apply
 
-Scripts with `run_once` in the name run only once. Scripts with `run_onchange` re-run when their source hash changes. If a script re-runs unexpectedly, check if the hash template is present:
+Scripts with `run_once` in the name run only once. Scripts with `run_onchange` re-run when their source hash changes. If a script re-runs unexpectedly, check that the hash template is present:
 
 ```bash
 head -5 .chezmoiscripts/run_onchange_after_*.sh.tmpl | grep run_onchange_hash
