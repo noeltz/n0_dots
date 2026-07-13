@@ -14,7 +14,10 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 source "$LIB_DIR/.lib-common.sh"
 
 readonly DESIRED_SHELL="zsh"
-readonly DESIRED_SHELL_PATH="$(which "$DESIRED_SHELL")"
+# Prefer a path that is actually listed in /etc/shells (chsh rejects any other
+# path). `which`/PATH order can resolve to /usr/sbin/zsh, which Void's zsh
+# package does not register in /etc/shells, causing chsh to fail.
+readonly DESIRED_SHELL_PATH="$(grep -m1 -E "/${DESIRED_SHELL}\$" /etc/shells 2>/dev/null || command -v "$DESIRED_SHELL")"
 
 main() {
   if ! request_sudo; then
