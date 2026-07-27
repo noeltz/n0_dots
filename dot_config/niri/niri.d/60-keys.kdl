@@ -6,7 +6,7 @@ binds {
   Mod+Space repeat=false hotkey-overlay-title="Open application launcher" { spawn-sh "noctalia msg panel-toggle launcher"; }
   Mod+Alt+C repeat=false hotkey-overlay-title="Clipboard History" { spawn-sh "noctalia msg panel-toggle clipboard"; }
   Mod+Alt+E repeat=false hotkey-overlay-title="Emoji Picker" { spawn-sh "noctalia msg panel-toggle launcher /emo"; }
-  Mod+B repeat=false { spawn "vivaldi"; }
+  Mod+B repeat=false { spawn "helium"; }
   Mod+E repeat=false hotkey-overlay-title="File Browser" { spawn "nautilus"; }
   Mod+Alt+T repeat=false hotkey-overlay-title="Text Editor" { spawn "kitty" "nvim"; }
   Mod+L repeat=false hotkey-overlay-title="Lock the Screen" { spawn-sh "noctalia msg session lock"; }
