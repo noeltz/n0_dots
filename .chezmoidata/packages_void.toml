@@ -124,7 +124,7 @@ packages = [
   "tree",
   "tuigreet",
   "udiskie",
-  "umbriel"
+  "umbriel",
   "unzip",
   "uv",
   "vim",
