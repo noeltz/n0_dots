@@ -14,9 +14,10 @@ builtin_ids = [
     "niri",
     "qt",
     "starship",
+    "umbriel",
     "wezterm"
 ]
-community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi" ]
+community_ids = [ "vivaldi", "zed", "papirus-icons", "yazi", "brave", "brave-origin", "micro", "opencode" ]
 
 
 [theme.templates.user.helium-policy]

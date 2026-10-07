@@ -1,0 +1,429 @@
+# Umbriel configuration ported from Niri setup
+
+# ==============================================================================
+# Includes
+
+[include]
+files = []
+
+# ==============================================================================
+# General
+
+[general]
+autostart = ["dinit-session"]
+mod_key = "Super"
+xwayland = true
+show_cheatsheet = false
+focus_on_activate = false
+honor_restored_maximize = false
+
+# ==============================================================================
+# Workspaces
+
+[workspaces]
+back_and_forth = true
+
+# ==============================================================================
+# Outputs
+
+# eDP-1 - Internal panel
+[output."eDP-1"]
+mode = "1920x1080@60"
+position = [0, 0]
+scale = 1.0
+transform = "normal"
+
+# HDMI-A-1 - External display
+[output."HDMI-A-1"]
+mode = "1920x1080@60"
+position = [0, 1080]
+scale = 1.0
+transform = "normal"
+
+# DP-1 - Additional monitor
+[output."DP-1"]
+mode = "1920x1080@60"
+position = [1920, 1080]
+scale = 1.0
+transform = "normal"
+
+# Virtual-1 - QEMU monitor
+[output."Virtual-1"]
+mode = "1920x1080@60"
+position = [0, 0]
+scale = 1.0
+transform = "normal"
+
+# ==============================================================================
+# Colors
+
+[colors]
+background = "#141419FF"
+text_primary = "#E8E8EAFF"
+text_muted = "#8A8A92FF"
+accent_primary = "#7AA3FFFF"
+accent_secondary = "#F5C96BFF"
+warning = "#F5C96BFF"
+error = "#FF6B6BFF"
+
+# ==============================================================================
+# Appearance
+
+[appearance]
+prefer_no_csd = true
+border_width = 2
+outer_border_width = 0
+corner_radius = 4
+drag_opacity = 0.75
+
+[appearance.blur]
+enabled = true
+optimized = true
+passes = 3
+radius = 5
+noise = 0.02
+brightness = 0.9
+contrast = 0.9
+saturation = 1.1
+
+[appearance.shadow]
+enabled = true
+softness = 30
+offset_x = 0
+offset_y = 5
+
+# ==============================================================================
+# Layout
+
+[layout]
+mode = "scrolling"
+gap = 8
+width_presets = [0.333, 0.5, 0.667]
+
+[layout.scrolling]
+default_width_fraction = 0.5
+center_underfull_strip = true
+
+# ==============================================================================
+# Input
+
+[input]
+middle_click_paste = false
+
+[input.keyboard]
+layout = "de"
+repeat_rate = 20
+repeat_delay = 300
+numlock_toggle = true
+
+[input.touchpad]
+tap = true
+natural_scroll = true
+accel_profile = "flat"
+
+[input.mouse]
+natural_scroll = false
+accel_profile = "flat"
+sensitivity = 0.0
+
+[input.cursor]
+theme = "Bibata-Modern-Ice"
+size = 24
+hardware_cursor = false
+hide_when_typing = false
+hide_timeout_ms = 0
+
+[input.focus]
+follows_mouse = true
+follows_mouse_max_scroll = 0.0
+
+# ==============================================================================
+# Hot Corners (disabled to match Niri config)
+
+[hot_corners.top_left]
+enabled = false
+
+[hot_corners.top_right]
+enabled = false
+
+[hot_corners.bottom_left]
+enabled = false
+
+[hot_corners.bottom_right]
+enabled = false
+
+# ==============================================================================
+# Keybinds
+
+[keybinds]
+
+# --- Terminal & Launcher ---
+"Mod+T" = { action = "spawn:kitty --single-instance", repeat = false }
+"Mod+Return" = { action = "spawn:kitty", repeat = false }
+"Mod+Space" = { action = "spawn:noctalia msg panel-toggle launcher", repeat = false }
+"Mod+Q" = { action = "window-close", repeat = false }
+
+# --- Applications ---
+"Mod+B" = { action = "spawn:helium", repeat = false }
+"Mod+E" = { action = "spawn:nautilus", repeat = false }
+"Mod+Shift+E" = { action = "spawn:kitty -e yazi", repeat = false }
+"Mod+Alt+T" = { action = "spawn:kitty nvim", repeat = false }
+
+# --- Noctalia Shell Panels & Utilities ---
+"Mod+Alt+C" = { action = "spawn:noctalia msg panel-toggle clipboard", repeat = false }
+"Mod+Alt+E" = { action = "spawn:noctalia msg panel-toggle launcher /emo", repeat = false }
+"Mod+Alt+W" = { action = "spawn:noctalia msg panel-toggle wallpaper", repeat = false }
+"Mod+Alt+Q" = { action = "spawn:noctalia msg panel-toggle session", repeat = false }
+"Ctrl+Alt+Delete" = { action = "spawn:noctalia msg panel-toggle session", repeat = false }
+"Mod+L" = { action = "spawn:noctalia msg session lock", repeat = false }
+"Mod+Alt+I" = { action = "spawn:noctalia msg caffeein-toggle", repeat = false }
+"Mod+Alt+V" = { action = "spawn:calc.sh", repeat = false }
+"Mod+Alt+R" = { action = "spawn:screen-record.sh", repeat = false }
+"Mod+Alt+Shift+R" = { action = "spawn:screen-record.sh region", repeat = false }
+"Mod+Ctrl+P" = { action = "spawn:colorpick.sh", repeat = false }
+
+# --- Screenshots ---
+"Print" = { action = "spawn:noctalia msg screenshot-region", repeat = false }
+"Mod+Print" = { action = "spawn:noctalia msg screenshot-region", repeat = false }
+
+# --- Cheatsheet / Overlay ---
+"Mod+Shift+Slash" = "cheatsheet-toggle"
+"Mod+F1" = "cheatsheet-toggle"
+
+# --- Media & Brightness Controls ---
+"XF86AudioRaiseVolume" = { action = "spawn:noctalia msg volume-up 2", allow_when_locked = true }
+"XF86AudioLowerVolume" = { action = "spawn:noctalia msg volume-down 2", allow_when_locked = true }
+"XF86AudioMute" = { action = "spawn:noctalia msg volume-mute", allow_when_locked = true }
+"XF86AudioMicMute" = { action = "spawn:noctalia msg mic-mute", allow_when_locked = true }
+"XF86AudioPlay" = { action = "spawn:noctalia msg media toggle", allow_when_locked = true }
+"XF86AudioPause" = { action = "spawn:noctalia msg media toggle", allow_when_locked = true }
+"XF86AudioPrev" = { action = "spawn:noctalia msg media previous", allow_when_locked = true }
+"XF86AudioNext" = { action = "spawn:noctalia msg media next", allow_when_locked = true }
+"XF86MonBrightnessUp" = { action = "spawn:noctalia msg brightness-up", allow_when_locked = true }
+"XF86MonBrightnessDown" = { action = "spawn:noctalia msg brightness-down", allow_when_locked = true }
+
+# --- Window Focus & Movement (Directional) ---
+"Mod+Left" = "window-focus-left"
+"Mod+Down" = "window-focus-or-workspace-down"
+"Mod+Up" = "window-focus-or-workspace-up"
+"Mod+Right" = "window-focus-right"
+
+"Mod+Shift+Left" = "column-move-left"
+"Mod+Shift+Down" = "window-move-or-workspace-down"
+"Mod+Shift+Up" = "window-move-or-workspace-up"
+"Mod+Shift+Right" = "column-move-right"
+
+"Mod+Home" = "column-focus-first"
+"Mod+End" = "column-focus-last"
+"Mod+Ctrl+Home" = "column-move-to-first"
+"Mod+Ctrl+End" = "column-move-to-last"
+
+# --- Output Focus & Move ---
+"Mod+Ctrl+Left" = "output-focus-left"
+"Mod+Ctrl+Down" = "output-focus-down"
+"Mod+Ctrl+Up" = "output-focus-up"
+"Mod+Ctrl+Right" = "output-focus-right"
+
+"Mod+Ctrl+Shift+Left" = "column-move-to-output-left"
+"Mod+Ctrl+Shift+Down" = "column-move-to-output-down"
+"Mod+Ctrl+Shift+Up" = "column-move-to-output-up"
+"Mod+Ctrl+Shift+Right" = "column-move-to-output-right"
+
+# --- Overview ---
+"Mod+Tab" = { action = "overview-toggle", repeat = false }
+"Mod+Alt+X" = { action = "overview-toggle", repeat = false }
+"Mod+O" = { action = "overview-toggle", repeat = false }
+
+# --- Window State & Geometry ---
+"Mod+V" = { action = "window-toggle-floating", repeat = false }
+"Mod+Shift+V" = { action = "window-focus-switch-floating", repeat = false }
+"Mod+P" = { action = "window-toggle-pinned", repeat = false }
+"Mod+F" = { action = "window-toggle-maximize", repeat = false }
+"Mod+Shift+F" = { action = "window-toggle-fullscreen", repeat = false }
+"Mod+Ctrl+Shift+F" = { action = "window-toggle-maximize-to-edges", repeat = false }
+"Mod+M" = { action = "window-toggle-maximize-to-edges", repeat = false }
+
+"Mod+R" = "window-cycle-width"
+"Mod+Shift+R" = "window-cycle-width-back"
+"Mod+C" = "column-center"
+"Mod+Minus" = "window-modify-width:-0.05"
+"Mod+Equal" = "window-modify-width:0.05"
+
+"Mod+Comma" = "window-consume-left"
+"Mod+Period" = "window-expel-right"
+
+# --- Workspaces (1-9) ---
+"Mod+1" = "workspace-switch:1"
+"Mod+2" = "workspace-switch:2"
+"Mod+3" = "workspace-switch:3"
+"Mod+4" = "workspace-switch:4"
+"Mod+5" = "workspace-switch:5"
+"Mod+6" = "workspace-switch:6"
+"Mod+7" = "workspace-switch:7"
+"Mod+8" = "workspace-switch:8"
+"Mod+9" = "workspace-switch:9"
+
+"Mod+Shift+1" = "window-move-to-workspace:1"
+"Mod+Shift+2" = "window-move-to-workspace:2"
+"Mod+Shift+3" = "window-move-to-workspace:3"
+"Mod+Shift+4" = "window-move-to-workspace:4"
+"Mod+Shift+5" = "window-move-to-workspace:5"
+"Mod+Shift+6" = "window-move-to-workspace:6"
+"Mod+Shift+7" = "window-move-to-workspace:7"
+"Mod+Shift+8" = "window-move-to-workspace:8"
+"Mod+Shift+9" = "window-move-to-workspace:9"
+
+"Mod+Page_Down" = "workspace-next"
+"Mod+Page_Up" = "workspace-previous"
+"Mod+Ctrl+Page_Down" = "window-move-to-workspace-next"
+"Mod+Ctrl+Page_Up" = "window-move-to-workspace-previous"
+"Mod+Shift+Page_Down" = "workspace-move-down"
+"Mod+Shift+Page_Up" = "workspace-move-up"
+
+# --- Scratchpad ---
+"Mod+grave" = "scratchpad-toggle"
+"Mod+Shift+grave" = { action = "window-move-to-scratchpad", repeat = false }
+"Mod+Ctrl+grave" = { action = "window-restore-from-scratchpad", repeat = false }
+"Mod+Alt+Tab" = "scratchpad-focus-next"
+
+# --- Mouse Wheel Chords ---
+"Mod+WheelUp" = "window-focus-left"
+"Mod+WheelDown" = "window-focus-right"
+"Mod+Shift+WheelUp" = "column-move-left"
+"Mod+Shift+WheelDown" = "column-move-right"
+"Mod+Ctrl+WheelUp" = "workspace-previous"
+"Mod+Ctrl+WheelDown" = "workspace-next"
+
+# ==============================================================================
+# Window Rules
+
+# Noctalia dialogs
+[[window_rule]]
+match.app_id = "^dev\\.noctalia\\.Noctalia$"
+default_floating = true
+default_size = [1020, 900]
+
+[[window_rule]]
+match.app_id = "^dev\\.noctalia\\.UmbrielSharePicker$"
+default_floating = true
+default_size = [800, 600]
+
+# System applets (open floating)
+[[window_rule]]
+match.app_id = "^(nm-applet|pavucontrol|blueman-manager|waypaper)$"
+default_floating = true
+
+# Picture-in-Picture
+[[window_rule]]
+match.app_id = "^(zen|firefox)$"
+match.title = "^[Pp]icture-in-Picture$"
+default_floating = true
+default_position = { x = 24, y = 24, anchor = "bottom_right" }
+
+[[window_rule]]
+match.app_id = "^Chromium-browser$"
+match.title = "^\\| Spotify$"
+default_floating = true
+default_position = { x = 24, y = 24, anchor = "bottom_right" }
+
+# Discord Popout
+[[window_rule]]
+match.title = "^Discord Popout$"
+default_floating = true
+default_size = [300, 500]
+default_position = { x = 24, y = 24, anchor = "bottom_right" }
+
+# Maximize major apps on open
+[[window_rule]]
+match.app_id = "^(discord|zen|firefox|vencord|vesktop)$"
+default_maximize = true
+
+# Sysupdate & TUI tools floating
+[[window_rule]]
+match.app_id = "^(sysupdate|n0tui_.*)$"
+default_floating = true
+
+# Dropdown notifications
+[[window_rule]]
+match.app_id = "^dropdown$"
+match.title = "^gsr notify$"
+default_floating = true
+default_position = { x = 0, y = 8, anchor = "top" }
+
+# ==============================================================================
+# Layer Rules
+
+[[layer_rule]]
+match.namespace = "^noctalia-(bar-[^\"]+|notification|dock|panel|attached-panel|osd)$"
+blur = true
+blur_ignore_alpha = 0.5
+blur_popups = true
+blur_optimized = false
+
+# ==============================================================================
+# Animation
+
+[animation]
+enabled = true
+duration_ms = 250
+curve = "easeout"
+
+[animation.windows_in]
+enabled = true
+curve = "spring:1,900"
+style = "zoom"
+scale = 0.5
+
+[animation.windows_out]
+enabled = true
+curve = "spring:1,1000"
+style = "fade"
+
+[animation.windows_move]
+enabled = true
+curve = "spring:1,900"
+
+[animation.workspaces]
+enabled = true
+curve = "spring:1,800"
+
+[animation.overview]
+enabled = true
+curve = "spring:1,800"
+
+[animation.scratchpad]
+enabled = true
+curve = "spring:1,800"
+dim = 0.8
+blur = false
+scale = 0.0
+maximize = false
+fullscreen = false
+
+[animation.border]
+enabled = true
+curve = "spring:1,900"
+
+[animation.dim_unfocused]
+enabled = false
+dim = 0.0
+
+[animation.layers]
+enabled = false
+
+# ==============================================================================
+# Environment
+
+[environment]
+CLUTTER_BACKEND = "wayland"
+SDL_VIDEODRIVER = "wayland,x11"
+QT_QPA_PLATFORM = "wayland;xcb"
+MOZ_ENABLE_WAYLAND = "1"
+QT_WAYLAND_DISABLE_WINDOWDECORATION = "1"
+_JAVA_AWT_WM_NONREPARENTING = "1"
+ELECTRON_OZONE_PLATFORM_HINT = "auto"
+QT_QPA_PLATFORMTHEME = "gtk3"
+WLR_NO_HARDWARE_CURSORS = "1"
+
+[include.optional]
+files = ["noctalia.toml"]
