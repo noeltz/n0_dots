@@ -202,7 +202,7 @@ chezmoi runs scripts in a deterministic order:
 | after | `04_login_manager` | Configure greetd display manager |
 | after | `10-services` | Enable/disable runit system services |
 | after | `11-fonts_and_icons` | Install Maple Mono, Papirus, Tabler |
-| after | `11-xdg-autostart` | Disable unwanted XDG autostart entries |
+| after | `11-xdg-autostart` | Configure XDG environment, initialize user directories, and disable unwanted autostart entries |
 | after | `15-virtualization` | Configure QEMU/KVM + libvirt host |
 | after | `30-vscode-theme` | Install matugen VSCode theme |
 | after | `80-init-proton-pass-cli` | Install and authenticate Proton Pass CLI |

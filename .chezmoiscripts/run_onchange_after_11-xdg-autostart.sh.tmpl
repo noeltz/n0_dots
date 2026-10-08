@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# run_onchange_after_11-xdg-autostart.sh - Disable XDG autostart entries
+# run_onchange_after_11-xdg-autostart.sh - Configure XDG environment and user directories
 #
+# Initializes user directories using xdg-user-dirs-update as the current user,
+# preserving local paths and honoring the configured locale and XDG settings.
 # Disables declared XDG autostart entries by setting a user-level Hidden=true
 # override in ~/.config/autostart (no sudo). Idempotent: skips entries already
 # marked Hidden=true. Existing user overrides are preserved; only the Hidden
@@ -20,6 +22,19 @@ source "$LIB_DIR/.lib-common.sh"
 
 readonly SYSTEM_AUTOSTART_DIR="/etc/xdg/autostart"
 readonly USER_AUTOSTART_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+
+# Initialize directories after package installation without forcing local settings.
+_initialize_user_dirs() {
+  if ! command_exists xdg-user-dirs-update; then
+    die "xdg-user-dirs-update not found; install the xdg-user-dirs package"
+  fi
+
+  log STEP "Initializing XDG user directories"
+  if ! xdg-user-dirs-update; then
+    die "Failed to initialize XDG user directories; check XDG configuration and permissions"
+  fi
+  log INFO "XDG user directory update complete"
+}
 
 # Disables a single XDG autostart entry via a user-level Hidden=true override.
 #
@@ -107,7 +122,9 @@ sudo chmod +x /etc/profile.d/xdg-path.sh
   entries+=({{- . | quote -}})
   {{ end }}
 
-  print_box "XDG Autostart"
+  print_box "XDG Setup"
+
+  _initialize_user_dirs
 
   if [[ ${#entries[@]} -eq 0 ]]; then
     log SKIP "No XDG autostart entries to disable"
