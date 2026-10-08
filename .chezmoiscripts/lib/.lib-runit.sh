@@ -66,6 +66,20 @@ runit_enable_service() {
   if sudo sv status "$service_link" 2>/dev/null | grep -q '^run:'; then
     return 0
   fi
+
+  # runsvdir discovers new symlinks asynchronously. sv's start timeout only
+  # applies once supervision exists; otherwise it fails immediately.
+  local attempt
+  for ((attempt = 0; attempt < 10; attempt++)); do
+    if sudo sv status "$service_link" &>/dev/null; then
+      break
+    fi
+    sleep 1
+  done
+  if ((attempt == 10)); then
+    LAST_ERROR="Service supervision did not become ready: $service"
+    return 1
+  fi
   if ! sudo sv -w 10 start "$service_link" &>/dev/null ||
      ! sudo sv status "$service_link" 2>/dev/null | grep -q '^run:'; then
     LAST_ERROR="Service failed to start: $service"

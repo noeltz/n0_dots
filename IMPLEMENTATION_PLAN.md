@@ -23,7 +23,7 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 - [x] Compositor-specific portal configuration — overrides implemented; ScreenCast spelling fixed; installed-interface validator supplied.
 - [x] Portable display/lock defaults — both compositor validators pass without theme/local files; Virtual-1 widgets removed.
 - [ ] Complete microcode diagnostics — read-only CPU/firmware/dracut/mitigation evidence complete; privileged booted-initramfs inspection pending.
-- [x] README and automated checks — eight isolated regression groups pass.
+- [x] README and automated checks — nine isolated regression groups pass.
 - [ ] Local migration and hardware acceptance — sudo requires interactive authentication; fresh-login/reboot/VM/physical checks pending.
 
 ## 1. Services and hardware
@@ -33,12 +33,12 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 - [x] Render overrides and helper hashes; hash actual `.chezmoi.configFile` — all scripts render and Bash syntax passes.
 - [x] Disable/stop acpid, preserve elogind policy — service declaration; no logind overrides or added event daemons.
 - [x] Keep Noctalia locking and lock-before-suspend configured — idle lock retained, lock_before_suspend=true retained.
-- [ ] Verify actual Noctalia lock-before-sleep integration — physical lid and suspend test pending; configuration alone is not proof.
+- [x] Verify Noctalia lock-before-sleep registration — post-reboot elogind ListInhibitors reports noctalia, UID 1000, "Lock before sleep", delay mode. Physical lid/suspend timing acceptance remains pending.
 - [x] TLP only on physical laptops with packaged defaults — detection and template implementation verified.
 - [x] Backlight only when selected; unnecessary service disabled — shared selection and bounded device wait implemented.
 - [x] Declare chrony/tlp/zramen and enable NetworkManager/chronyd/D-Bus/logging — TOML parses and templates render.
 - [x] Disable standalone dhcpcd/wpa_supplicant/iwd and competing time daemons — service declarations inspected.
-- [x] Start enabled-but-stopped required services and verify state — mocked healthy, stopped, missing and failed-start checks pass; healthy services never restarted.
+- [x] Start enabled-but-stopped required services and verify state — mocked healthy, stopped, missing and failed-start checks pass; real delayed-supervisor regression passes after fixing runsvdir discovery race; healthy services never restarted.
 - [x] Retain existing healthy NetworkManager/D-Bus — no migration restart, DNS drop-in waits for future start.
 - [x] Zram zstd/50%/8192 MiB/32767; retain disk swap — mocked inactive/active/disabled provisioning checks pass; activation guard skips zramen with active swap.
 - [x] Require selected essentials; retain optional package failure handling — selected firmware/TLP/backlight/zram prerequisites checked explicitly; optional desktop package handling unchanged.
@@ -94,7 +94,7 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 - [ ] All installed portal overrides match registration interfaces — checker confirms Niri GNOME/GTK/keyring interfaces and activation commands; only Umbriel registration and share picker are missing.
 - [x] Complete chezmoi dry-run generated and reviewed — `chezmoi -S "$PWD" apply --dry-run --force --verbose` succeeds; output contains unrelated existing destination conflicts (Kitty/theme), so no broad apply performed.
 - [x] Migration backups prepared in scripts — first-run .bak for greetd/profile/zram; README includes NetworkManager and service-link backup instructions.
-- [ ] Perform privileged migration with working TTY and next-login greetd changes — pending interactive sudo; system and current desktop not changed.
+- [ ] Complete privileged migration — user updated and rebooted, but current service/profile/zram scripts are not recorded as completed. Existing profile hook and zram run file remain old; interactive sudo is required to finish apply.
 - [ ] Clean 4 GB/two-core Void VM bootstrap: network/time/audio/user directories/Umbriel/Niri — no clean VM supplied.
 - [ ] File dialogs/browser screen sharing in both sessions — package and fresh login pending.
 - [ ] Laptop lid/suspend/resume/AC/lock-before-sleep/brightness — requires physical acceptance.
@@ -103,3 +103,23 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 
 Implementation of code and isolated checks is complete. Rollout is incomplete.
 Microcode diagnostics and portal runtime checks retain the limitations above.
+
+
+## Post-reboot audit — 2026-10-08, current laptop
+
+- [x] Latest user dotfiles deployed (ecae180); dynamic greetd configuration matches.
+- [x] Active elogind Wayland session on tty7; runtime directory belongs to noeltz, mode 0700.
+- [x] Exactly one main graphical session bus (dbus-run-session -> dbus-daemon and Umbriel), plus the expected separate accessibility bus. System bus responds.
+- [x] Dinit pipewire, wireplumber, pipewire-pulse, noctalia and dbus-env all STARTED. Audio devices and default sink/source available.
+- [x] D-Bus-activated portals receive the same session-bus address, wayland-0 and umbriel desktop identity. Activation publication works.
+- [ ] Complete graphical environment exports: compositor/dinit/portal processes have unset EDITOR, XCURSOR_PATH, XDG_CONFIG_HOME/DATA_HOME/STATE_HOME and duplicated Flatpak entries. Current /etc/profile.d/xdg-environment.sh is the old non-exporting loop; obsolete xdg-path.sh remains. Directly sourcing deployed shared loader produces correct exports and deduplicated paths.
+- [x] NetworkManager reports connected/full connectivity; chrony synchronized with normal leap state. TLP enabled on AC using packaged defaults. Backlight saved/current brightness both 716; device max 7142.
+- [x] Expected required service links present; acpid/dhcpcd/standalone wpa_supplicant/iwd/time competitors absent. NetworkManager's D-Bus wpa_supplicant backend is running normally. Root-only sv supervision status is still uninspected.
+- [x] Noctalia registers elogind delay inhibitor "Lock before sleep". Lid/suspend timing still needs a physical test.
+- [x] Zram runtime uses zstd, 7.7 GiB (50% of 16204224 KiB RAM), priority 32767. Only zram swap is active; no disk swap was removed by this work. Managed activation-guard run script has not yet been installed.
+- [x] Deployed Umbriel/Niri configs validate. Internal output uses preferred 1920x1080 at 60.020 Hz. Standard XDG user directories exist.
+- [x] GTK FileChooser interface responds (version 4). Screenshot interface responds (version 2), actual capture not tested.
+- [ ] Umbriel ScreenCast unavailable (frontend version 0); required backend registration/share picker/package still missing, including repository query.
+- [x] Post-reboot Intel running and installed firmware remain 0xf0; dracut drop-ins enable early microcode. Privileged booted-initramfs inspection remains pending.
+- [x] Reproduced and fixed immediate sv failure before new service supervision exists. A new nanoklogd link plus absent completed service-script state is consistent with this interrupting the last apply; exact user error output was not available.
+- [ ] Run the corrected update/apply from a terminal with sudo, then log out/in and recheck graphical process environments and script state. No live services/session were restarted by this audit.

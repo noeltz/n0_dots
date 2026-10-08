@@ -407,7 +407,8 @@ Useful diagnostics:
 sv status /var/service/{NetworkManager,dbus,chronyd,tlp,backlight,zramen}
 nmcli general status; nmcli device status
 chronyc tracking; chronyc sources
-loginctl session-status; loginctl list-inhibitors
+loginctl session-status
+dbus-send --system --print-reply --dest=org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager.ListInhibitors
 stat -c '%U %a %n' "$XDG_RUNTIME_DIR"
 dinitctl list; dinitctl status dbus-env
 n0-portal-check

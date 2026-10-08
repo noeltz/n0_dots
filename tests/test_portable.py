@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import shutil
 import shlex
+import signal
 import subprocess
 import tempfile
 import tomllib
@@ -171,6 +172,33 @@ printf run > '{state}'
         self.assertTrue((self.home/'service/test').is_symlink())
         self.assertNotEqual(enable('missing',False).returncode,0)
         state.write_text('down');self.env['FAIL_START']='1';self.assertNotEqual(enable(check=False).returncode,0)
+    @unittest.skipUnless(shutil.which('runsv') and shutil.which('sv'), 'requires runit tools')
+    def test_runit_delayed_supervisor(self):
+        # Real sv fails immediately before supervision exists, regardless of
+        # -w. Model runsvdir's delayed discovery without touching host services.
+        service = self.home/'sv/test'; service.mkdir(parents=True)
+        (service/'run').write_text('#!/bin/sh\nexec sleep 60\n')
+        (service/'run').chmod(0o755)
+        (service/'down').touch()
+        (self.home/'service').mkdir()
+        lib = self.home/'runit.sh'
+        lib.write_text((ROOT/'.chezmoiscripts/lib/.lib-runit.sh').read_text().replace('/etc/sv', str(self.home/'sv')).replace('/var/service', str(self.home/'service')))
+        bin = self.home/'bin'; bin.mkdir()
+        (bin/'sudo').write_text('#!/bin/sh\nexec "$@"\n'); (bin/'sudo').chmod(0o755)
+        self.env['PATH'] = f'{bin}:/usr/bin:/bin'
+        supervisor = subprocess.Popen(['sh', '-c', 'sleep 0.2; exec runsv "$1"', 'test-supervisor', str(service)], env=self.env, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            result = run(['bash', '-c', f'source {shlex.quote(str(lib))}; runit_enable_service test || {{ echo "$LAST_ERROR" >&2; exit 1; }}'], self.env, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(run(['sv', 'status', str(service)], self.env).stdout.startswith('run:'))
+        finally:
+            os.killpg(supervisor.pid, signal.SIGTERM)
+            try:
+                supervisor.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(supervisor.pid, signal.SIGKILL)
+                supervisor.wait()
+
     def test_zram(self):
         template=(ROOT/'.chezmoiscripts/run_onchange_after_12-zram.sh.tmpl').read_text()
         rendered=subprocess.run(['chezmoi','-S',str(ROOT),'execute-template'],input=template,text=True,capture_output=True,check=True).stdout
