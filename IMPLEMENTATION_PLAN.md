@@ -8,8 +8,9 @@ selects installed desktop entries and wraps them with `dbus-run-session --`;
 greetd's normal profile loading supplies the shared environment. Adding a
 compositor never requires adding a case to a shared script.
 The user has published `xdg-desktop-portal-umbriel` through `n0_void-repo`.
-It is now declared and required by bootstrap. Installation, share-picker validation
-and end-to-end portal acceptance remain pending until the next update/login.
+It is declared and required by bootstrap. Installation, registration/activation and
+share-picker executable validation passed after update/reboot. End-to-end browser
+sharing, picker interaction and alternative-session acceptance remain pending.
 Snapshot/recovery automation and virtualization-host restructuring are excluded.
 
 ## Summary
@@ -60,11 +61,11 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 ## 3. Portals, displays, locking
 
 - [x] Declare and require supplied XBPS portal package — packages_void.toml updated; availability gate removed; no source fallback.
-- [ ] Install supplied Umbriel portal package — user will update/install/reboot, then request a recheck.
+- [x] Install supplied Umbriel portal package — xdg-desktop-portal-umbriel-20261008142455_1 installed from n0_void-repo; current package script completed successfully.
 - [x] Umbriel default=umbriel;gtk, ScreenCast/Screenshot Umbriel, GTK dialogs, keyring secrets — config implemented.
 - [x] Retain Niri GNOME/GTK and correct ScreenCast case — config implemented.
 - [x] Preserve session-bus portal activation; no portal supervision/kill/restart — inspected scripts/dinit config.
-- [ ] Validate installed Umbriel registration/activation/share picker/executable paths — n0-portal-check prepared, missing package prevents completion.
+- [x] Validate installed Umbriel registration/activation/share picker/executable paths — n0-portal-check passes; activated backend owns its bus name; compiled /usr/libexec/umbriel-share-picker path is correct; both binaries have no missing shared libraries.
 - [x] Remove forced outputs/modes/positions — shared output tables/blocks removed.
 - [x] Optional unmanaged local output files load last — ignore entries supplied; native validators pass with absent files.
 - [x] Remove shared cursor workaround; document local settings — WLR variable removed and Umbriel hardware cursor enabled.
@@ -92,7 +93,7 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 - [x] Service healthy/stopped/missing/failed starts — mocked commands, no real services changed.
 - [x] Zram active changes/inactive activation/disabled preservation — mocked checks; guarded service run also tested with active swap.
 - [x] Fresh compositor configs without generated/local files — umbriel validate and niri validate pass.
-- [ ] All installed portal overrides match registration interfaces — checker confirms Niri GNOME/GTK/keyring interfaces and activation commands; only Umbriel registration and share picker are missing.
+- [x] All installed portal overrides match registration interfaces — n0-portal-check now passes for Umbriel and Niri configurations. Niri end-to-end session acceptance is still pending.
 - [x] Complete chezmoi dry-run generated and reviewed — `chezmoi -S "$PWD" apply --dry-run --force --verbose` succeeds; output contains unrelated existing destination conflicts (Kitty/theme), so no broad apply performed.
 - [x] Migration backups prepared in scripts — first-run .bak for greetd/profile/zram; README includes NetworkManager and service-link backup instructions.
 - [x] Complete privileged migration — recovery recheck confirms current greetd/service/profile/zram scripts completed at 13:23 UTC; shared profile hook and guarded zram run script installed; obsolete xdg-path.sh removed; fresh graphical environment correct.
@@ -138,3 +139,13 @@ Microcode diagnostics and portal runtime checks retain the limitations above.
 - [x] Repeat dry-run has zero pending setup scripts. Three destination differences remain: Kitty's Noctalia theme include, browser MIME defaults, and Umbriel's optional include order (local output file before generated theme). Current local output file is absent; future local overrides should be last. Local differences were retained.
 - [ ] Umbriel portal package/share picker still missing; screen-sharing acceptance remains blocked by the external prerequisite.
 - [ ] Root-only current sv status and booted-initramfs payload inspection still need terminal sudo. Physical lid/suspend timing, external displays, alternative-session acceptance and clean VM tests remain pending.
+
+
+## Umbriel portal package recheck — 2026-10-08, 16:53 CEST
+
+- [x] xdg-desktop-portal-umbriel-20261008142455_1 installed from https://github.com/noeltz/n0_void-repo/releases/latest/download; package script completed at 14:50 UTC; user rebooted afterward.
+- [x] Package supplies portal registration, D-Bus activation and /usr/libexec backend/share-picker executables. No missing shared-library dependencies. Compiled chooser path is /usr/libexec/umbriel-share-picker; no local chooser override exists.
+- [x] n0-portal-check passes. Umbriel backend owns org.freedesktop.impl.portal.desktop.umbriel; owner resolves to the running backend PID.
+- [x] Frontend ScreenCast version now 4 (previously 0), source flags 3 and cursor-mode flags 7. Screenshot version 2; GTK FileChooser version 4. Protocol presence/capabilities checked without opening capture or dialog prompts.
+- [x] Backend/frontend/GTK portal share the graphical session bus, wayland-0, umbriel identity and correct exported environment. Runtime directory ownership/mode correct. Dinit services, networking, chrony and zram remain healthy.
+- [ ] Actual browser capture, source-picker interaction, screenshot result, file-dialog interaction and Niri-session acceptance remain pending; installation/API checks do not establish successful end-to-end capture.
