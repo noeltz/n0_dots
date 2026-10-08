@@ -94,7 +94,7 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 - [ ] All installed portal overrides match registration interfaces — checker confirms Niri GNOME/GTK/keyring interfaces and activation commands; only Umbriel registration and share picker are missing.
 - [x] Complete chezmoi dry-run generated and reviewed — `chezmoi -S "$PWD" apply --dry-run --force --verbose` succeeds; output contains unrelated existing destination conflicts (Kitty/theme), so no broad apply performed.
 - [x] Migration backups prepared in scripts — first-run .bak for greetd/profile/zram; README includes NetworkManager and service-link backup instructions.
-- [ ] Complete privileged migration — user updated and rebooted, but current service/profile/zram scripts are not recorded as completed. Existing profile hook and zram run file remain old; interactive sudo is required to finish apply.
+- [x] Complete privileged migration — recovery recheck confirms current greetd/service/profile/zram scripts completed at 13:23 UTC; shared profile hook and guarded zram run script installed; obsolete xdg-path.sh removed; fresh graphical environment correct.
 - [ ] Clean 4 GB/two-core Void VM bootstrap: network/time/audio/user directories/Umbriel/Niri — no clean VM supplied.
 - [ ] File dialogs/browser screen sharing in both sessions — package and fresh login pending.
 - [ ] Laptop lid/suspend/resume/AC/lock-before-sleep/brightness — requires physical acceptance.
@@ -123,3 +123,17 @@ Microcode diagnostics and portal runtime checks retain the limitations above.
 - [x] Post-reboot Intel running and installed firmware remain 0xf0; dracut drop-ins enable early microcode. Privileged booted-initramfs inspection remains pending.
 - [x] Reproduced and fixed immediate sv failure before new service supervision exists. A new nanoklogd link plus absent completed service-script state is consistent with this interrupting the last apply; exact user error output was not available.
 - [ ] Run the corrected update/apply from a terminal with sudo, then log out/in and recheck graphical process environments and script state. No live services/session were restarted by this audit.
+
+
+## Recovery recheck — 2026-10-08, 15:25 CEST
+
+- [x] User updated to c5c2fd9 and rebooted. Current greetd/services/XDG/zram script hashes all have successful completed state.
+- [x] Shared system profile hook installed; obsolete xdg-path.sh absent; guarded zram run installed.
+- [x] Umbriel, dinit, Noctalia and D-Bus-activated portals export configured XDG config/data/state directories, Micro/Zed editor settings, gtk3 Qt theme and cursor paths. Flatpak entries appear once.
+- [x] One main session bus; child services and portals share it and receive wayland-0/umbriel. Runtime directory ownership/mode correct. System bus and elogind inhibitor query respond.
+- [x] Dinit audio/shell services STARTED; audio sink/source available; NetworkManager full connectivity; chrony synchronized; TLP enabled with packaged defaults; brightness saved/current both 716; logging processes running.
+- [x] Competing acpid/dhcpcd/standalone wpa_supplicant/iwd/time-daemon links absent. NetworkManager's D-Bus wpa_supplicant backend remains expected.
+- [x] Rebooted zram still zstd, 7.7 GiB, priority 32767. Running CPU revision still 0xf0.
+- [x] Repeat dry-run has zero pending setup scripts. Three destination differences remain: Kitty's Noctalia theme include, browser MIME defaults, and Umbriel's optional include order (local output file before generated theme). Current local output file is absent; future local overrides should be last. Local differences were retained.
+- [ ] Umbriel portal package/share picker still missing; screen-sharing acceptance remains blocked by the external prerequisite.
+- [ ] Root-only current sv status and booted-initramfs payload inspection still need terminal sudo. Physical lid/suspend timing, external displays, alternative-session acceptance and clean VM tests remain pending.
