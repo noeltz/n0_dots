@@ -64,9 +64,9 @@ main() {
   fc-cache -fv
   log INFO "Fonts installed to $FONT_DIR"
 
-  log STEP "Installing Papirus icon theme"
-  wget -qO- https://git.io/papirus-icon-theme-install | env DESTDIR="$HOME/.local/share/icons" sh
-  log INFO "Icons installed"
+  # log STEP "Installing Papirus icon theme"
+  # wget -qO- https://git.io/papirus-icon-theme-install | env DESTDIR="$HOME/.local/share/icons" sh
+  # log INFO "Icons installed"
 }
 
 main "$@"
