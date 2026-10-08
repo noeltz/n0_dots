@@ -23,7 +23,7 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 - [x] Compositor-specific portal configuration — overrides implemented; ScreenCast spelling fixed; installed-interface validator supplied.
 - [x] Portable display/lock defaults — both compositor validators pass without theme/local files; Virtual-1 widgets removed.
 - [ ] Complete microcode diagnostics — read-only CPU/firmware/dracut/mitigation evidence complete; privileged booted-initramfs inspection pending.
-- [x] README and automated checks — six isolated regression groups pass.
+- [x] README and automated checks — eight isolated regression groups pass.
 - [ ] Local migration and hardware acceptance — sudo requires interactive authentication; fresh-login/reboot/VM/physical checks pending.
 
 ## 1. Services and hardware
@@ -45,7 +45,9 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 
 ## 2. Environment and sessions
 
-- [x] POSIX sourceable loader, lexical trusted assignments, export-state restoration — sh/Bash/Zsh tests pass with export on/off.
+- [x] POSIX sourceable loader, lexical trusted assignments, export-state restoration — sh/Bash/Zsh tests pass with export on/off and absent/empty environment directories; Zsh options restored.
+- [x] Keep settings in environment.d — PATH/Flatpak choices moved from loader into 05-path.conf; late local PATH/theme overrides and custom XDG_DATA_HOME verified.
+- [x] Restore lightweight Zsh startup — native persistent PATH deduplication and history kept in .zshenv; root .zshenv explicitly delegates to relocated file; full loader runs only via profile/.zshrc, not for every child script.
 - [x] Profile/Zsh share the generic loader; greetd uses normal profile loading — duplicate scanning/XDG PATH hook retired with backup.
 - [x] Idempotent PATH/data/cursor paths, Nix/Flatpak, spaces/custom XDG/empty home — repeated-loading tests pass.
 - [x] Runtime directory belongs to PAM/elogind — Zsh creation/fallback removed; runtime diagnostics documented. Custom wrapper validation removed with the wrapper.
@@ -82,7 +84,7 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 ## 5. Verification and rollout
 
 - [x] All chezmoi script templates render, rendered Bash syntax and TOML parsing — tests/test_portable.py.
-- [x] POSIX and Zsh environment execution — repeated-source tests across sh/Bash/Zsh.
+- [x] POSIX and Zsh environment execution — repeated-source tests across sh/Bash/Zsh; real Zsh noninteractive, interactive, login and interactive-login startup with and without inherited ZDOTDIR; child scripts inherit exports without reloading configs.
 - [x] Hardware detection and explicit overrides — chassis-only laptop, empty hypervisor directory, desktop, physical Intel/AMD, QEMU guest, invalid settings.
 - [x] Loader empty home/custom XDG/space-containing paths/Nix/Flatpak/export state — isolated checks.
 - [x] Generic session commands and profile environment — arbitrary session stubs preserve spaced arguments and supplied identity; no desktop launched.

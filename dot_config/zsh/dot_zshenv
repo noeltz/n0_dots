@@ -1,3 +1,8 @@
 #!/usr/bin/env zsh
-[ ! -r "${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh" ] || . "${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh"
+
+# Keep every Zsh invocation lightweight. Login/interactive shells load
+# environment.d through /etc/profile and .zshrc; scripts inherit exports.
+typeset -U path PATH
+path=("${XDG_BIN_HOME:-$HOME/.local/bin}" "${path[@]}")
+
 export HISTFILE="$ZDOTDIR/.zsh_history"

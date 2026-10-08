@@ -45,6 +45,7 @@ class Portable(unittest.TestCase):
     def test_environment(self):
         conf=Path(self.env['XDG_CONFIG_HOME']); shutil.copytree(ROOT/'dot_config/environment.d',conf/'environment.d')
         self.env['PATH']='/usr/bin:/bin:/nix/var/nix/profiles/default/bin:/usr/bin'
+        self.env['XDG_DATA_HOME']=str(self.home/'data with spaces')
         for shell in ('sh','bash','zsh'):
             for auto in ('set +a','set -a'):
                 code=f'{auto}; . "{ROOT}/dot_config/n0-dots/environment.sh"; first="$PATH|$XDG_DATA_DIRS|$XCURSOR_PATH"; . "{ROOT}/dot_config/n0-dots/environment.sh"; [ "$first" = "$PATH|$XDG_DATA_DIRS|$XCURSOR_PATH" ] || exit 7; case $- in *a*) echo on;; *) echo off;; esac; printf "%s\\n" "$PATH" "$XDG_DATA_DIRS" "$QT_QPA_PLATFORMTHEME"'
@@ -53,9 +54,64 @@ class Portable(unittest.TestCase):
                 self.assertIn('/nix/var/nix/profiles/default/bin',result)
                 self.assertIn('.nix-profile/share',result)
                 self.assertIn('flatpak/exports/share',result)
+                self.assertIn(str(self.home/'data with spaces/flatpak/exports/share'),result)
                 self.assertTrue(result.endswith('gtk3\n'))
+        # A late environment.d file must control PATH priority too; the loader
+        # only deduplicates after loading, without imposing settings afterward.
+        (conf/'environment.d/zz-local.conf').write_text('PATH=/opt/local:$PATH\nQT_QPA_PLATFORMTHEME=local-choice\n')
+        for shell in ('sh','bash','zsh'):
+            result=run([shell,'-c',f'. "{ROOT}/dot_config/n0-dots/environment.sh"; printf "%s\\n" "$PATH" "$QT_QPA_PLATFORMTHEME"'],self.env).stdout
+            self.assertTrue(result.startswith('/opt/local:'))
+            self.assertTrue(result.endswith('local-choice\n'))
         shutil.rmtree(conf)
         run(['sh','-c',f'. "{ROOT}/dot_config/n0-dots/environment.sh"'],self.env)
+    def test_environment_empty_and_exports(self):
+        conf = Path(self.env['XDG_CONFIG_HOME'])
+        for populated in (False, True):
+            if populated:
+                (conf/'environment.d').mkdir(parents=True)
+            for shell in ('sh', 'bash', 'zsh'):
+                result = run([shell, '-c', f'. "{ROOT}/dot_config/n0-dots/environment.sh"'], self.env)
+                self.assertEqual(result.stderr, '')
+        # The loader must export new assignments, preserve lexical order and
+        # restore Zsh options, even when no settings were inherited at login.
+        (conf/'environment.d/10-first.conf').write_text('N0_VALUE=first\n')
+        (conf/'environment.d/20-second.conf').write_text('N0_VALUE=$N0_VALUE:second\n')
+        for shell in ('sh', 'bash', 'zsh'):
+            result = run([shell, '-c', f'. "{ROOT}/dot_config/n0-dots/environment.sh"; /usr/bin/printenv N0_VALUE'], self.env)
+            self.assertEqual(result.stdout, 'first:second\n')
+        result = run(['zsh', '-c', f'setopt nomatch; . "{ROOT}/dot_config/n0-dots/environment.sh"; [[ -o nomatch ]]'], self.env)
+        self.assertEqual(result.returncode, 0)
+
+    def test_zsh_startup(self):
+        conf = Path(self.env['XDG_CONFIG_HOME'])
+        zdir = conf/'zsh'; zdir.mkdir(parents=True)
+        shutil.copy(ROOT/'dot_zshenv', self.home/'.zshenv')
+        for name in ('zshenv', 'zshrc'):
+            shutil.copy(ROOT/f'dot_config/zsh/dot_{name}', zdir/f'.{name}')
+        # Exercise real startup files without loading plugins or changing the
+        # host's /etc/profile.d. This fixture models Void's login profile hook.
+        shutil.copytree(ROOT/'dot_config/n0-dots', conf/'n0-dots')
+        shutil.copytree(ROOT/'dot_config/environment.d', conf/'environment.d')
+        (zdir/'conf.d').mkdir()
+        shutil.copy(ROOT/'dot_config/zsh/conf.d/history.zsh', zdir/'conf.d/history.zsh')
+        (zdir/'.zprofile').write_text('. "$XDG_CONFIG_HOME/n0-dots/environment.sh"\n')
+        (conf/'environment.d/zz-count.conf').write_text('N0_LOADS=$((${N0_LOADS:-0} + 1))\n')
+        env = dict(HOME=str(self.home), XDG_CONFIG_HOME=str(conf), PATH='/usr/bin:/bin', TERM='dumb')
+        probe = """path+=("/opt/repeated" "/opt/repeated"); print -rl -- "${N0_LOADS:-0}" "$PATH" "$HISTFILE"; zsh -d -c 'print -r -- "${N0_LOADS:-0}"'"""
+        for inherited in (False, True):
+            if inherited: env['ZDOTDIR'] = str(zdir)
+            for mode, loads in (('-c', 0), ('-ic', 1), ('-lc', 1), ('-lic', 2)):
+                result = run(['zsh', '-d', mode, probe], env)
+                self.assertEqual(result.stderr, '')
+                lines = result.stdout.splitlines()
+                self.assertEqual(lines[0], str(loads))
+                self.assertEqual(lines[3], str(loads))  # child script never reloads desktop settings
+                self.assertEqual(lines[1].split(':').count('/opt/repeated'), 1)
+                self.assertIn(str(self.home/'.local/bin'), lines[1].split(':'))
+                if 'i' in mode or mode == '-c':
+                    self.assertEqual(lines[2], str(zdir/'.zsh_history'))
+
     def test_session(self):
         # Read the actual generated greetd command and profile hook, then model
         # greetd sourcing the profile before executing a selected desktop entry.

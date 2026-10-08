@@ -342,14 +342,28 @@ swap is retained. Applying changes never restarts active zram; new settings need
 a reboot. CPU firmware is required on physical Intel (`intel-ucode`) and AMD
 (`linux-firmware-amd`) systems. VM microcode belongs to the host.
 
-The POSIX loader at `~/.config/n0-dots/environment.sh` is shared by the system
-profile hook and Zsh initialization. It has no compositor names, command selection,
-or desktop-identity overrides. It sources trusted,
-readable `$XDG_CONFIG_HOME/environment.d/*.conf` in lexical order, exports
-assignments and preserves the shell's automatic-export state. Repeated loading
-deduplicates PATH, XDG data and cursor paths, retaining Nix and Flatpak entries.
-Qt uses `QT_QPA_PLATFORMTHEME=gtk3`. Local environment changes belong in a later
-unmanaged file such as `environment.d/zz-local.conf`.
+Environment settings stay in `$XDG_CONFIG_HOME/environment.d/*.conf`, including
+PATH and Flatpak search paths in `05-path.conf`. Add local settings in a later
+unmanaged file such as `zz-local.conf`. These are trusted, shell-compatible
+assignment files, as in the original setup.
+
+The shared loader at `~/.config/n0-dots/environment.sh` only loads and exports
+those settings in lexical order and deduplicates PATH, data and cursor paths.
+It preserves automatic-export state and Zsh options, handles absent/empty config
+directories, and honors custom XDG directories and paths containing spaces. It
+has no compositor selection, theme choices or other environment settings of its
+own. Keeping one loading mechanism prevents the system profile and Zsh from
+exporting different environments.
+
+The system profile hook loads the environment for greetd and login shells;
+`.zshrc` uses the same loader for interactive terminals. `.zshenv` stays lightweight:
+it sets the user bin path, enables Zsh's persistent `typeset -U path PATH`
+deduplication and sets the Zsh history location. Noninteractive child shells inherit
+exported settings instead of reloading every `.conf`. `~/.zshenv` explicitly
+sources the relocated `$ZDOTDIR/.zshenv` on the first shell, because changing
+`ZDOTDIR` alone does not cause Zsh to reread it. See
+[Zsh's startup order](https://zsh.sourceforge.io/Doc/Release/Files.html).
+
 Elogind/PAM owns `XDG_RUNTIME_DIR`; shells never create or substitute it. A healthy
 login provides a runtime directory owned by the user with mode 0700.
 

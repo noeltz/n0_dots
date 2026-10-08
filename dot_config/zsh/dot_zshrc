@@ -1,5 +1,6 @@
 #!/usr/bin/env zsh
 
+# Reload shared settings for interactive shells (including non-login terminals).
 [ ! -r "${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh" ] || . "${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh"
 
 if [[ -f "$ZDOTDIR/settings.zsh" ]]; then

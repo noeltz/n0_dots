@@ -1,4 +1,10 @@
 #!/usr/bin/env zsh
 
-XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export ZDOTDIR="${ZDOTDIR:-$XDG_CONFIG_HOME/zsh}"
+
+# Changing ZDOTDIR does not make Zsh reread .zshenv from the new directory.
+# Delegate explicitly on the first shell; children use ZDOTDIR directly.
+if [[ "${ZDOTDIR:A}" != "${HOME:A}" && -r "$ZDOTDIR/.zshenv" ]]; then
+  source "$ZDOTDIR/.zshenv"
+fi
