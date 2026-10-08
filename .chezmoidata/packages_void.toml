@@ -81,6 +81,7 @@ packages = [
   "mesa-dri",
   "mesa-vaapi",
   "mesa-vulkan-lavapipe",
+  "micro",
   "mise",
   "ModemManager",
   "mpv",
