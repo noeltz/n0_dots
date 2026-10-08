@@ -57,21 +57,41 @@ class Portable(unittest.TestCase):
         shutil.rmtree(conf)
         run(['sh','-c',f'. "{ROOT}/dot_config/n0-dots/environment.sh"'],self.env)
     def test_session(self):
-        bin=self.home/'bin';bin.mkdir();runtime=self.home/'runtime';runtime.mkdir(mode=0o700)
-        self.env.update(XDG_RUNTIME_DIR=str(runtime), PATH=f'{bin}:/usr/bin:/bin')
-        for name in ('start-umbriel','niri','dbus-run-session'):
-            f=bin/name;f.write_text('#!/bin/sh\nprintf "%s\\n" "'+name+'" "$XDG_CURRENT_DESKTOP" "$@"\n');f.chmod(0o755)
-        wrapper=ROOT/'private_dot_local/bin/executable_n0-session'
-        result=run(['sh',str(wrapper)],self.env).stdout.splitlines()
-        self.assertEqual(result,['dbus-run-session','umbriel','--','start-umbriel'])
-        self.env['DBUS_SESSION_BUS_ADDRESS']='unix:path=fake'
-        result=run(['sh',str(wrapper),'niri','--session','argument with spaces'],self.env).stdout.splitlines()
-        self.assertEqual(result,['niri','niri','--session','argument with spaces'])
-        self.env.pop('XDG_RUNTIME_DIR')
-        self.assertIn('invalid XDG_RUNTIME_DIR', run(['sh',str(wrapper)],self.env,False).stderr)
-        self.env['XDG_RUNTIME_DIR']=str(runtime)
-        runtime.chmod(0o755)
-        self.assertNotEqual(run(['sh',str(wrapper)],self.env,False).returncode,0)
+        # Read the actual generated greetd command and profile hook, then model
+        # greetd sourcing the profile before executing a selected desktop entry.
+        def render(name):
+            return subprocess.run(
+                ['chezmoi', '-S', str(ROOT), 'execute-template'],
+                input=(ROOT/'.chezmoiscripts'/name).read_text(),
+                text=True, capture_output=True, check=True,
+            ).stdout
+        login = render('run_onchange_after_04_login_manager.sh.tmpl')
+        config = tomllib.loads('[terminal]\n' + login.split('[terminal]\n', 1)[1].split('\nEOF', 1)[0])
+        command = shlex.split(config['default_session']['command'])
+        self.assertNotIn('--cmd', command)
+        self.assertIn('--remember-session', command)
+        wrapper = shlex.split(command[command.index('--session-wrapper') + 1])
+        self.assertEqual(wrapper, ['dbus-run-session', '--'])
+
+        xdg = render('run_onchange_after_11-xdg-autostart.sh.tmpl')
+        hook = xdg.split("sudo tee /etc/profile.d/xdg-environment.sh > /dev/null <<'EOF'\n", 1)[1].split('\nEOF', 1)[0]
+        profile = self.home/'profile hook.sh'; profile.write_text(hook)
+        conf = Path(self.env['XDG_CONFIG_HOME'])
+        shutil.copytree(ROOT/'dot_config/environment.d', conf/'environment.d')
+        shutil.copytree(ROOT/'dot_config/n0-dots', conf/'n0-dots')
+        (conf/'environment.d/zz-session-test.conf').write_text('SESSION_TEST=loaded\n')
+        bin = self.home/'bin'; bin.mkdir()
+        bus = bin/'dbus-run-session'
+        bus.write_text('#!/bin/sh\n[ "$1" = -- ] || exit 2\nshift\nexport DBUS_SESSION_BUS_ADDRESS=stub-session-bus\nexec "$@"\n')
+        bus.chmod(0o755)
+        self.env['PATH'] = f'{bin}:/usr/bin:/bin'
+        for name in ('river', 'mangowc', 'future compositor'):
+            session = bin/name
+            session.write_text('#!/bin/sh\nprintf "%s\n" "${0##*/}" "$SESSION_TEST" "$XDG_CURRENT_DESKTOP" "$XDG_SESSION_DESKTOP" "$XDG_SESSION_TYPE" "$DBUS_SESSION_BUS_ADDRESS" "$QT_QPA_PLATFORMTHEME" "$@"\n')
+            session.chmod(0o755)
+            self.env.update(XDG_CURRENT_DESKTOP=name, XDG_SESSION_DESKTOP=name, XDG_SESSION_TYPE='wayland')
+            result = run(['sh', '-c', '. "$1"; shift; exec "$@"', 'greetd-profile-test', str(profile), *wrapper, str(session), '--option', 'argument with spaces'], self.env).stdout.splitlines()
+            self.assertEqual(result, [name, 'loaded', name, name, 'wayland', 'stub-session-bus', 'gtk3', '--option', 'argument with spaces'])
     def test_runit(self):
         # Redirect service roots into a sandbox, keeping helper logic unchanged.
         source=(ROOT/'.chezmoiscripts/lib/.lib-runit.sh').read_text().replace('/etc/sv',str(self.home/'sv')).replace('/var/service',str(self.home/'service'))
@@ -134,7 +154,6 @@ enable_service() {{ echo enable >> '{calls}'; }}
     def test_templates_and_configs(self):
         for file in (ROOT/'dot_config/zsh/dot_zshenv', ROOT/'dot_config/zsh/dot_zshrc', ROOT/'dot_zshenv'):
             run(['zsh', '-n', str(file)])
-        run(['sh','-n',str(ROOT/'private_dot_local/bin/executable_n0-session')])
         run(['sh','-n',str(ROOT/'dot_config/n0-dots/environment.sh')])
         for file in (ROOT/'.chezmoiscripts').glob('*.tmpl'):
             rendered=subprocess.run(['chezmoi','-S',str(ROOT),'execute-template'],input=file.read_text(),text=True,capture_output=True,check=True)

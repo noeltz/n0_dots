@@ -44,7 +44,7 @@ chezmoi init --apply https://github.com/noeltz/n0_dots.git
 | **Repositories** | XBPS: nonfree, Noctalia, n0 (self-hosted) · Nix channel (nixpkgs-unstable) |
 | **Packages** | ~133 Void (xbps) + Nix packages via `packages_void.toml` / `packages_nix.toml` |
 | **Shell** | Zsh as default shell, Starship prompt, Sheldon plugin manager |
-| **Window Manager** | Umbriel by default; Niri available in tuigreet |
+| **Window Manager** | Umbriel and Niri configured; choose any installed session in tuigreet |
 | **Display Manager** | greetd + tuigreet (vt=7, `_greeter` user) |
 | **Session Supervision** | User **dinit** instance spawned by either compositor, supervising pipewire, wireplumber, pipewire-pulse and noctalia — auto-restart, dependency ordering, per-service `dinitctl restart <name>` |
 | **System Services** | runit services declaratively enabled/disabled via `services.toml` |
@@ -298,13 +298,20 @@ GNU General Public License v3.0 — see <a href="LICENSE">LICENSE</a>.
 
 ## Portable desktop and machine settings
 
-Umbriel is the default command in greetd/tuigreet. Use tuigreet's session selector
-(F3) to choose Niri; `--remember-session` remembers an explicit choice. The
-`n0-session` wrapper forwards arguments, loads the shared environment, assigns
-Wayland desktop identity, and starts one D-Bus session bus unless one is inherited.
-Either compositor starts `dinit-session` after Wayland is ready; its `dbus-env`
-service publishes the real display and desktop identity for portal activation.
-Changes to greetd, environment and portal selection take effect at the next login.
+Greetd is independent of the window manager. Tuigreet discovers installed session
+`.desktop` files, including those under `/usr/share/wayland-sessions`. Use F3 to
+choose a session; `--remember-session` remembers your choice. Its only Wayland
+wrapper is `dbus-run-session --`. There is no hardcoded compositor command or
+custom session wrapper. Installing a new compositor with a session entry makes
+it selectable without changing greetd or the shared environment loader. Session
+commands and desktop identity come from the session entry and compositor.
+
+Greetd's default `source_profile=true` loads `/etc/profile`, which runs the
+shared environment hook before launching the selected session. The Umbriel and
+Niri configurations each start `dinit-session` after Wayland is ready; its
+`dbus-env` service publishes the real display and desktop identity for portal
+activation. Another compositor can use its own startup configuration if you want
+it to run these same user services. Changes take effect at the next login.
 
 Detection uses VM CPU/DMI evidence, battery devices or portable chassis types,
 and actual backlight devices. VM detection takes priority and disables physical
@@ -336,14 +343,15 @@ a reboot. CPU firmware is required on physical Intel (`intel-ucode`) and AMD
 (`linux-firmware-amd`) systems. VM microcode belongs to the host.
 
 The POSIX loader at `~/.config/n0-dots/environment.sh` is shared by the system
-profile hook, Zsh initialization and graphical wrapper. It sources trusted,
+profile hook and Zsh initialization. It has no compositor names, command selection,
+or desktop-identity overrides. It sources trusted,
 readable `$XDG_CONFIG_HOME/environment.d/*.conf` in lexical order, exports
 assignments and preserves the shell's automatic-export state. Repeated loading
 deduplicates PATH, XDG data and cursor paths, retaining Nix and Flatpak entries.
 Qt uses `QT_QPA_PLATFORMTHEME=gtk3`. Local environment changes belong in a later
 unmanaged file such as `environment.d/zz-local.conf`.
-Elogind/PAM owns `XDG_RUNTIME_DIR`; shells never create or substitute it. The
-wrapper requires a directory owned by the user with mode 0700.
+Elogind/PAM owns `XDG_RUNTIME_DIR`; shells never create or substitute it. A healthy
+login provides a runtime directory owned by the user with mode 0700.
 
 Shared compositor settings use preferred display modes and automatic placement.
 Optional unmanaged `~/.config/umbriel/outputs.local.toml` and

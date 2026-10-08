@@ -1,6 +1,12 @@
-# Portable Void desktop setup: Umbriel default, Niri alternative
+# Portable Void desktop setup: dynamic session selection
 
 Implementation and rollout are separate. Evidence recorded 2026-10-08.
+
+User correction: greetd must remain compositor-independent. The original planned
+hardcoded Umbriel default and custom session wrapper are superseded. Tuigreet
+selects installed desktop entries and wraps them with `dbus-run-session --`;
+greetd's normal profile loading supplies the shared environment. Adding a
+compositor never requires adding a case to a shared script.
 External prerequisite: publish a signed `xdg-desktop-portal-umbriel` package with
 GTK4 share picker through `n0_void-repo`. Package creation is outside this work.
 Snapshot/recovery automation and virtualization-host restructuring are excluded.
@@ -8,12 +14,12 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 ## Summary
 
 - [x] Inspect bootstrap, services, sessions and upstream guidance — read existing scripts; checked Void power guidance and Umbriel portal interfaces/build installation paths.
-- [x] Confirm Umbriel preferred, Niri alternative — default tuigreet command and remembered selector retained.
+- [x] Dynamic session selection — no default compositor command; installed desktop entries and remembered selector determine the session.
 - [x] Automatic detection with local overrides — isolated tests and this laptop (`false true true` for VM/laptop/backlight).
 - [x] Leave snapshots/recovery to separate work — no snapshot changes.
 - [x] Running CPU matches installed firmware revision — Intel signature `0x406e3`, flags `0xc0`, both revisions `0xf0`.
 - [x] Implement system services/hardware — rendered scripts and mocked service checks pass.
-- [x] Shared environment/preferred session — sh/Bash/Zsh and wrapper stub checks pass.
+- [x] Shared environment/dynamic sessions — sh/Bash/Zsh and generic session launch checks pass.
 - [x] Compositor-specific portal configuration — overrides implemented; ScreenCast spelling fixed; installed-interface validator supplied.
 - [x] Portable display/lock defaults — both compositor validators pass without theme/local files; Virtual-1 widgets removed.
 - [ ] Complete microcode diagnostics — read-only CPU/firmware/dracut/mitigation evidence complete; privileged booted-initramfs inspection pending.
@@ -40,12 +46,12 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 ## 2. Environment and sessions
 
 - [x] POSIX sourceable loader, lexical trusted assignments, export-state restoration — sh/Bash/Zsh tests pass with export on/off.
-- [x] Profile/Zsh/wrapper share loader; retire duplicate scanning/XDG PATH hook — source reviewed, profile migration removes old path hook with backup.
+- [x] Profile/Zsh share the generic loader; greetd uses normal profile loading — duplicate scanning/XDG PATH hook retired with backup.
 - [x] Idempotent PATH/data/cursor paths, Nix/Flatpak, spaces/custom XDG/empty home — repeated-loading tests pass.
-- [x] Runtime directory belongs to PAM/elogind — Zsh creation/fallback removed; wrapper validates owner/mode and missing directory errors.
+- [x] Runtime directory belongs to PAM/elogind — Zsh creation/fallback removed; runtime diagnostics documented. Custom wrapper validation removed with the wrapper.
 - [x] Shared Qt gtk3 choice — environment.d updated; Qt6-specific and competing compositor assignments removed.
-- [x] n0-session defaults to start-umbriel; inherited bus reused — stub tests preserve spaced arguments and explicit Niri selection.
-- [x] Tuigreet default/remembered session/argument boundaries/desktop identity — rendered TOML and wrapper tests; packaged session Exec commands inspected.
+- [x] Remove n0-session and compositor dispatch — tuigreet wraps arbitrary session commands directly with dbus-run-session; no custom bus-reuse policy.
+- [x] Tuigreet discovery/remembered session/argument boundaries — rendered config and generic launch tests; identity belongs to desktop entries/compositors.
 - [x] Keep post-Wayland dinit and D-Bus activation publication — both compositor startup configs retain dinit-session, dbus-env retained.
 
 ## 3. Portals, displays, locking
@@ -71,7 +77,7 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 - [x] Correct GDS interpretation documented with kernel reference — missing mitigation, not evidence of unloaded firmware.
 - [x] Conditional normal xbps-reconfigure guidance; no live reload or automatic mitigation changes — no rebuild attempted without evidence.
 - [ ] Rebuild affected installed initramfs only if privileged inspection finds missing/stale payload — conditional pending, not assumed necessary.
-- [x] README preferred session/editor/terminal/service ownership/overrides/environment/portals/displays/script order/migration/troubleshooting/reboots/Btrfs separation updated.
+- [x] README dynamic sessions/editor/terminal/service ownership/overrides/environment/portals/displays/script order/migration/troubleshooting/reboots/Btrfs separation updated.
 
 ## 5. Verification and rollout
 
@@ -79,7 +85,7 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 - [x] POSIX and Zsh environment execution — repeated-source tests across sh/Bash/Zsh.
 - [x] Hardware detection and explicit overrides — chassis-only laptop, empty hypervisor directory, desktop, physical Intel/AMD, QEMU guest, invalid settings.
 - [x] Loader empty home/custom XDG/space-containing paths/Nix/Flatpak/export state — isolated checks.
-- [x] Wrapper default/Niri/arguments/bus reuse/runtime failures — stub checks, no desktop launched.
+- [x] Generic session commands and profile environment — arbitrary session stubs preserve spaced arguments and supplied identity; no desktop launched.
 - [x] Service healthy/stopped/missing/failed starts — mocked commands, no real services changed.
 - [x] Zram active changes/inactive activation/disabled preservation — mocked checks; guarded service run also tested with active swap.
 - [x] Fresh compositor configs without generated/local files — umbriel validate and niri validate pass.
