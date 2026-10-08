@@ -26,34 +26,6 @@ back_and_forth = true
 # ==============================================================================
 # Outputs
 
-# eDP-1 - Internal panel
-[output."eDP-1"]
-mode = "1920x1080@60"
-position = [0, 0]
-scale = 1.0
-transform = "normal"
-
-# HDMI-A-1 - External display
-[output."HDMI-A-1"]
-mode = "1920x1080@60"
-position = [0, 1080]
-scale = 1.0
-transform = "normal"
-
-# DP-1 - Additional monitor
-[output."DP-1"]
-mode = "1920x1080@60"
-position = [1920, 1080]
-scale = 1.0
-transform = "normal"
-
-# Virtual-1 - QEMU monitor
-[output."Virtual-1"]
-mode = "1920x1080@60"
-position = [0, 0]
-scale = 1.0
-transform = "normal"
-
 # ==============================================================================
 # Colors
 
@@ -129,7 +101,7 @@ sensitivity = 0.0
 [input.cursor]
 theme = "Bibata-Modern-Ice"
 size = 24
-hardware_cursor = false
+hardware_cursor = true
 hide_when_typing = false
 hide_timeout_ms = 0
 
@@ -422,8 +394,6 @@ MOZ_ENABLE_WAYLAND = "1"
 QT_WAYLAND_DISABLE_WINDOWDECORATION = "1"
 _JAVA_AWT_WM_NONREPARENTING = "1"
 ELECTRON_OZONE_PLATFORM_HINT = "auto"
-QT_QPA_PLATFORMTHEME = "gtk3"
-WLR_NO_HARDWARE_CURSORS = "1"
 
 [include.optional]
-files = ["noctalia.toml"]
+files = ["noctalia.toml", "outputs.local.toml"]

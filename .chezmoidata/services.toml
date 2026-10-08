@@ -1,13 +1,14 @@
 # System services to enable (runit: symlinked into /var/service). Idempotent.
 enable_system = [
-  "backlight",
+  "NetworkManager",
+  "chronyd",
   "dbus",
+  "socklog-unix",
+  "nanoklogd",
   "libvirtd",
   "virtlockd",
   "virtlogd",
 ]
 
 # System services to disable and stop (runit: removed from /var/service, sv down). Idempotent.
-disable_system = [
-
-]
+disable_system = ["acpid", "dhcpcd", "wpa_supplicant", "iwd", "ntpd", "openntpd", "timesyncd"]

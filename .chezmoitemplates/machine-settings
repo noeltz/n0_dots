@@ -1,0 +1,11 @@
+{{ $machine := get . "machine" | default dict -}}
+MACHINE_VM_GUEST={{ get $machine "vm_guest" | default "auto" | quote }}
+MACHINE_LAPTOP={{ get $machine "laptop" | default "auto" | quote }}
+MACHINE_BACKLIGHT={{ get $machine "backlight" | default "auto" | quote }}
+{{ if hasKey $machine "zram" -}}
+MACHINE_ZRAM={{ get $machine "zram" }}
+{{ else -}}
+MACHINE_ZRAM=true
+{{ end -}}
+case "$MACHINE_ZRAM" in true|false) ;; *) die "machine.zram must be a boolean";; esac
+resolve_machine || die "Invalid machine settings"

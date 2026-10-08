@@ -1,4 +1,6 @@
-{{- if stat (joinPath .chezmoi.homeDir ".config" "chezmoi" "chezmoi.yaml") -}}
-# Hash to trigger run_onchange:
-# hash: {{ include (joinPath .chezmoi.homeDir ".config" "chezmoi" "chezmoi.yaml") | sha256sum }}
-{{- end -}}
+{{- if stat .chezmoi.configFile -}}
+# configuration hash: {{ include .chezmoi.configFile | sha256sum }}
+{{- end }}
+# platform hash: {{ include ".chezmoiscripts/lib/.lib-platform.sh" | sha256sum }}
+# runit hash: {{ include ".chezmoiscripts/lib/.lib-runit.sh" | sha256sum }}
+# common helper hash: {{ include ".chezmoiscripts/lib/.lib-common.sh" | sha256sum }}

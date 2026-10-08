@@ -15,7 +15,10 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
+{{ template "machine-settings" . }}
+
 main() {
+  [[ $HAS_BACKLIGHT == true ]] || return 0
   if ! request_sudo; then
     die "Failed to obtain sudo access"
   fi
@@ -25,6 +28,7 @@ main() {
   local svc_dir="/etc/sv/backlight"
   sudo mkdir -p "$svc_dir"
 
+  [[ ! -e "$svc_dir/run" ]] || create_backup "$svc_dir/run" || die "Cannot back up backlight service"
   sudo tee "$svc_dir/run" >/dev/null <<'BACKLIGHT_RUN'
 #!/bin/sh
 # Persist backlight brightness across reboots.
@@ -35,8 +39,11 @@ set -eu
 STATE_DIR=/var/lib/backlight
 mkdir -p "$STATE_DIR"
 
-# Wait for at least one backlight device to appear.
+# Bounded device discovery; never loop endlessly on a machine without a panel.
+attempt=0
 while ! ls /sys/class/backlight/*/max_brightness >/dev/null 2>&1; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge 10 ]; then exec pause; fi
   sleep 2
 done
 

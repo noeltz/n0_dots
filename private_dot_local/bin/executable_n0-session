@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+loader="${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh"
+[ ! -r "$loader" ] || . "$loader"
+if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ ! -d "$XDG_RUNTIME_DIR" ] ||
+   [ "$(stat -c %u "$XDG_RUNTIME_DIR")" != "$(id -u)" ] ||
+   [ "$(stat -c %a "$XDG_RUNTIME_DIR")" != 700 ]; then
+  echo "n0-session: invalid XDG_RUNTIME_DIR. Log in through greetd/PAM with elogind; inspect loginctl and /run/user/$(id -u)." >&2
+  exit 1
+fi
+[ "$#" -gt 0 ] || set -- start-umbriel
+case "${1##*/}" in
+  start-umbriel|umbriel) XDG_CURRENT_DESKTOP=umbriel; XDG_SESSION_DESKTOP=umbriel;;
+  niri|niri-session) XDG_CURRENT_DESKTOP=niri; XDG_SESSION_DESKTOP=niri;;
+esac
+XDG_SESSION_TYPE=wayland
+export XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE
+if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then exec "$@"; fi
+exec dbus-run-session -- "$@"

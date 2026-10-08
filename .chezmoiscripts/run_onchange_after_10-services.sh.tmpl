@@ -16,6 +16,8 @@ readonly LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/
 # shellcheck source=/dev/null
 source "$LIB_DIR/.lib-common.sh"
 
+{{ template "machine-settings" . }}
+
 main() {
   if ! request_sudo; then
     die "Failed to obtain sudo access"
@@ -28,16 +30,30 @@ main() {
   if disable_service {{ . | quote }} "system"; then
     log INFO "Disabled system service {{ . }}"
   else
-    log WARN "Failed to disable {{ . }}: $LAST_ERROR"
+    die "Failed to disable {{ . }}: $LAST_ERROR"
   fi
   {{ end -}}
+
+  local svc selected
+  for svc in tlp backlight; do
+    selected=$IS_LAPTOP
+    [[ $svc == backlight ]] && selected=$HAS_BACKLIGHT
+    if [[ $selected == true ]]; then
+      enable_service "$svc" system || die "$svc: $LAST_ERROR"
+    else
+      disable_service "$svc" system || die "$svc: $LAST_ERROR"
+    fi
+  done
 
   log STEP "Enabling services"
   {{ range .enable_system -}}
   if enable_service {{ . | quote }} "system"; then
     log INFO "Enabled system service {{ . }}"
   else
-    log WARN "Failed to enable {{ . }}: $LAST_ERROR"
+    case {{ . | quote }} in
+      NetworkManager|chronyd|dbus|socklog-unix|nanoklogd) die "Failed to enable {{ . }}: $LAST_ERROR";;
+      *) log WARN "Failed to enable {{ . }}: $LAST_ERROR";;
+    esac
   fi
   {{ end -}}
 }

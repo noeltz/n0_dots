@@ -106,3 +106,49 @@ get_init_system() {
   printf 'unsupported\n'
   return 1
 }
+
+# Roots may be replaced by isolated tests; production uses the real kernel files.
+detect_vm() {
+  local root="${N0_SYS_ROOT:-/sys}" proc="${N0_PROC_ROOT:-/proc}"
+  [[ -s "$root/hypervisor/type" ]] && return 0
+  grep -qw hypervisor "$proc/cpuinfo" 2>/dev/null && return 0
+  grep -Eiq 'kvm|qemu|vmware|virtualbox|virtual machine|xen|bochs|parallels' \
+    "$root/class/dmi/id/product_name" "$root/class/dmi/id/sys_vendor" 2>/dev/null
+}
+detect_laptop() {
+  local root="${N0_SYS_ROOT:-/sys}" file chassis
+  for file in "$root"/class/power_supply/*/type; do
+    [[ -r "$file" ]] && [[ $(cat "$file") == Battery ]] && return 0
+  done
+  chassis=$(cat "$root/class/dmi/id/chassis_type" 2>/dev/null || true)
+  case "$chassis" in 8|9|10|11|14|30|31|32) return 0;; esac
+  return 1
+}
+detect_backlight() {
+  local file
+  for file in "${N0_SYS_ROOT:-/sys}"/class/backlight/*/max_brightness; do
+    [[ -r "$file" ]] && return 0
+  done
+  return 1
+}
+detect_cpu_vendor() {
+  awk '/vendor_id/ { if ($3 == "GenuineIntel") print "intel"; else if ($3 == "AuthenticAMD") print "amd"; else print "unknown"; exit }' "${N0_PROC_ROOT:-/proc}/cpuinfo"
+}
+machine_setting() {
+  case "$1" in
+    on) return 0;; off) return 1;; auto) "$2";;
+    *) echo "Invalid machine setting: $1 (expected auto, on, off)" >&2; return 2;;
+  esac
+}
+resolve_machine() {
+  local value
+  for value in "${MACHINE_VM_GUEST:-auto}" "${MACHINE_LAPTOP:-auto}" "${MACHINE_BACKLIGHT:-auto}"; do
+    case "$value" in auto|on|off) ;; *) echo "Invalid machine setting: $value" >&2; return 2;; esac
+  done
+  IS_VM=false; IS_LAPTOP=false; HAS_BACKLIGHT=false
+  if machine_setting "${MACHINE_VM_GUEST:-auto}" detect_vm; then IS_VM=true; fi
+  if [[ $IS_VM == false ]]; then
+    if machine_setting "${MACHINE_LAPTOP:-auto}" detect_laptop; then IS_LAPTOP=true; fi
+    if machine_setting "${MACHINE_BACKLIGHT:-auto}" detect_backlight; then HAS_BACKLIGHT=true; fi
+  fi
+}

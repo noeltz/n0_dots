@@ -4,4 +4,5 @@
 include "niri.d/_index.kdl"
 
 // Auto-generated colors from noctalia: DO NOT EDIT
-include "noctalia.kdl"
+include optional=true "noctalia.kdl"
+include optional=true "outputs.local.kdl"

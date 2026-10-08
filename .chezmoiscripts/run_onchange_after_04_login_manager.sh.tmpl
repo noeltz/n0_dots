@@ -67,12 +67,13 @@ disable_conflicting_dms() {
 readonly GREETD_CONFIG_FILE="/etc/greetd/config.toml"
 
 configure_greetd() {
+  [[ ! -e "$GREETD_CONFIG_FILE" ]] || create_backup "$GREETD_CONFIG_FILE" || die "Cannot back up greetd configuration"
   write_system_config "$GREETD_CONFIG_FILE" <<EOF || die "Failed to write greetd config file: $LAST_ERROR"
 [terminal]
 vt = 7
 
 [default_session]
-command = "tuigreet --time --remember --remember-session --session-wrapper 'dbus-run-session --'"
+command = "tuigreet --time --remember --remember-session --cmd start-umbriel --session-wrapper '${HOME}/.local/bin/n0-session'"
 user = "_greeter"
 EOF
 

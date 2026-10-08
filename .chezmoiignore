@@ -5,3 +5,11 @@ LICENSE
 
 assets/
 assets/**
+
+IMPLEMENTATION_PLAN.md
+tests/
+tests/**
+
+.config/umbriel/outputs.local.toml
+.config/niri/outputs.local.kdl
+.config/environment.d/zz-local.conf

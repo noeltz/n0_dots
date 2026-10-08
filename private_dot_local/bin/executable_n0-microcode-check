@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Read-only diagnostics. No live reload, mitigation changes, or rebuilds.
+set -euo pipefail
+if [[ -s /sys/hypervisor/type ]] || grep -qw hypervisor /proc/cpuinfo || grep -Eiq 'kvm|qemu|vmware|virtualbox|virtual machine|xen' /sys/class/dmi/id/{product_name,sys_vendor} 2>/dev/null; then
+  echo 'VM guest: CPU microcode is the responsibility of the host.'
+  exit 0
+fi
+vendor=$(awk '/vendor_id/ {print $3; exit}' /proc/cpuinfo)
+echo "CPU vendor: $vendor"
+echo "Running kernel: $(uname -r)"
+cat /sys/devices/system/cpu/cpu0/microcode/version 2>/dev/null || true
+case $vendor in
+  GenuineIntel)
+    file=$(awk '/cpu family/ {f=$4} /^model[[:space:]]*:/ {m=$3} /stepping/ {printf "/usr/lib/firmware/intel-ucode/%02x-%02x-%02x",f,m,$3; exit}' /proc/cpuinfo)
+    python3 - "$file" <<'PY'
+import struct, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+if not p.exists():
+    raise SystemExit(f'Missing matching Intel firmware: {p}')
+b = p.read_bytes()
+offset = 0
+while offset + 48 <= len(b):
+    header, revision, date, signature, checksum, loader, flags, data_size, total_size = struct.unpack_from('<9I', b, offset)
+    print(f'{p}: signature=0x{signature:x}, platform flags=0x{flags:x}, revision=0x{revision:x}, date=0x{date:x}')
+    offset += total_size or 2048
+PY
+    ;;
+  AuthenticAMD)
+    echo 'AMD firmware: linux-firmware-amd (inspect CPU equivalence table and matching patch ID)'
+    ls /usr/lib/firmware/amd-ucode/ || true
+    ;;
+esac
+printf '\nDracut early-microcode configuration (default is enabled):\n'
+grep -Hs early_microcode /etc/dracut.conf /etc/dracut.conf.d/*.conf /usr/lib/dracut/dracut.conf.d/*.conf 2>/dev/null || true
+printf '\nBooted-kernel initramfs (requires read permission):\n'
+image="/boot/initramfs-$(uname -r).img"
+if [[ -r $image ]]; then
+  lsinitrd "$image"
+else
+  echo "Pending privileged inspection: sudo lsinitrd '$image'"
+fi
+printf '\nKernel mitigation reports:\n'
+for file in /sys/devices/system/cpu/vulnerabilities/*; do printf '%s: ' "${file##*/}"; cat "$file"; done
+printf '\nGDS "Vulnerable: No microcode" describes missing GDS mitigation, not absence of loaded microcode.\n'
+echo 'Only if early payload is missing/stale: sudo xbps-reconfigure -f <installed kernel package>; then reboot and repeat diagnostics.'

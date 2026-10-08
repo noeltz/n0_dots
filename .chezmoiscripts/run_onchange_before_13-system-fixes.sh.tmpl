@@ -113,7 +113,7 @@ _fix_networkmanager_resolvconf() {
   printf '[main]\nrc-manager=symlink\n' | sudo tee "$dropin" >/dev/null
 
   if sudo sv status NetworkManager >/dev/null 2>&1; then
-    sudo sv restart NetworkManager || log WARN "Failed to restart NetworkManager"
+    log INFO "NetworkManager DNS configuration takes effect at next service start"
   fi
   return 0
 }

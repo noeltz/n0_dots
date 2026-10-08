@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+{{ template "run_onchange_hash" . }}
+set -euo pipefail
+LIB_DIR="${CHEZMOI_SOURCE_DIR:-$(chezmoi source-path)}/.chezmoiscripts/lib"
+source "$LIB_DIR/.lib-common.sh"
+{{ template "machine-settings" . }}
+[[ $MACHINE_ZRAM == true ]] || exit 0
+request_sudo || die "sudo required for zram configuration"
+[[ ! -e /etc/sv/zramen/conf ]] || create_backup /etc/sv/zramen/conf || die "Cannot back up zram configuration"
+write_system_config /etc/sv/zramen/conf <<'EOF'
+export ZRAM_COMP_ALGORITHM=zstd
+export ZRAM_PRIORITY=32767
+export ZRAM_SIZE=50
+export ZRAM_MAX_SIZE=8192
+export ZRAMEN_QUIET=1
+EOF
+# Guard activation too: linking a stopped service must not create extra swap.
+[[ ! -e /etc/sv/zramen/run ]] || create_backup /etc/sv/zramen/run || die "Cannot back up zram run script"
+write_system_config /etc/sv/zramen/run <<'EOF'
+#!/bin/sh
+[ ! -r ./conf ] || . ./conf
+if ! swapon --noheadings --show=NAME | grep -q '/dev/zram'; then
+  zramen make || exit 1
+fi
+exec pause
+EOF
+sudo chmod 755 /etc/sv/zramen/run
+# Never reset active swap, even when configuration changed.
+if swapon --noheadings --show=NAME | grep -q '/dev/zram'; then
+  [[ -L /var/service/zramen ]] || sudo ln -s /etc/sv/zramen /var/service/zramen
+  log INFO "Active zram preserved; new configuration takes effect after reboot"
+else
+  enable_service zramen system || die "$LAST_ERROR"
+fi

@@ -34,6 +34,20 @@ packages+=({{ . | quote }})
 nix_packages+=({{ . | quote }})
 {{ end -}}
 
+{{ template "machine-settings" . }}
+required_packages=(python3 NetworkManager dbus elogind chrony socklog-void greetd tuigreet umbriel niri)
+[[ $IS_LAPTOP == true ]] && required_packages+=(tlp)
+[[ $HAS_BACKLIGHT == true ]] && required_packages+=(inotify-tools)
+[[ $MACHINE_ZRAM == true ]] && required_packages+=(zramen)
+if [[ $IS_VM == false ]]; then
+  case $(detect_cpu_vendor) in
+    intel) required_packages+=(intel-ucode);;
+    amd) required_packages+=(linux-firmware-amd);;
+  esac
+fi
+# The signed Umbriel portal package is an external prerequisite. Require it
+# once repository metadata advertises it; never build it from source.
+
 # --- Void Linux installation path ---
 
 _main_xbps() {
@@ -47,9 +61,21 @@ _main_xbps() {
     sudo xbps-install -S
   fi
 
+  if xbps-query -R xdg-desktop-portal-umbriel >/dev/null 2>&1; then
+    required_packages+=(xdg-desktop-portal-umbriel)
+  else
+    log WARN "Umbriel portal package unavailable: screen sharing acceptance remains pending"
+  fi
+  local pkg
+  for pkg in "${required_packages[@]}"; do
+    if ! xbps-query "$pkg" >/dev/null 2>&1; then
+      sudo xbps-install -y "$pkg" || die "Required package installation failed: $pkg"
+    fi
+    xbps-query "$pkg" >/dev/null 2>&1 || die "Required package missing: $pkg"
+  done
+
   # Filter to packages not yet installed
   local -a to_install=()
-  local pkg
   for pkg in "${packages[@]}"; do
     if xbps-query "$pkg" >/dev/null 2>&1; then
       log SKIP "${COLOR_GREEN}${pkg}${COLOR_RESET} exists"

@@ -57,21 +57,17 @@ runit_enable_service() {
     return 1
   fi
 
-  # Check if already enabled
-  if [[ -L "$service_link" ]]; then
-    return 0
-  fi
-
-  # Create symlink
-  if ! sudo ln -s "$service_dir" "$service_link" 2>/dev/null; then
+  # Preserve healthy services; an enabled but stopped service still needs starting.
+  if [[ ! -L "$service_link" ]] && ! sudo ln -s "$service_dir" "$service_link" 2>/dev/null; then
     LAST_ERROR="Failed to enable service: $service"
     return 1
   fi
 
-  # Start the service (give it a moment)
-  sleep 1
-
-  if ! sudo sv up "$service" &>/dev/null; then
+  if sudo sv status "$service_link" 2>/dev/null | grep -q '^run:'; then
+    return 0
+  fi
+  if ! sudo sv -w 10 start "$service_link" &>/dev/null ||
+     ! sudo sv status "$service_link" 2>/dev/null | grep -q '^run:'; then
     LAST_ERROR="Service failed to start: $service"
     return 1
   fi
@@ -124,7 +120,7 @@ runit_disable_service() {
 
   # Stop the service
   if sudo sv status "$service" 2>/dev/null | grep -q "^run:"; then
-    if ! sudo sv down "$service" &>/dev/null; then
+    if ! sudo sv -w 10 stop "$service_link" &>/dev/null; then
       LAST_ERROR="Failed to stop service: $service"
       return 1
     fi

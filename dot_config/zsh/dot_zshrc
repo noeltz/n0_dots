@@ -1,22 +1,6 @@
 #!/usr/bin/env zsh
 
-# Source XDG environment variables for non-systemd systems
-if [ -d "$HOME/.config/environment.d/" ]; then
-  set -a
-  for file in "$HOME/.config/environment.d/"*.conf; do
-      [ -r "$file" ] && source "$file"
-  done
-  set +a
-fi
-
-# Ensure XDG_RUNTIME_DIR exists (on Void without elogind, it isn't created at login)
-if [[ -n "$XDG_RUNTIME_DIR" ]] && [[ ! -d "$XDG_RUNTIME_DIR" ]]; then
-  if ! mkdir -p "$XDG_RUNTIME_DIR" 2>/dev/null; then
-    export XDG_RUNTIME_DIR="${TMPDIR:-/tmp}/runtime-${USER}"
-    mkdir -p "$XDG_RUNTIME_DIR"
-  fi
-  chmod 700 "$XDG_RUNTIME_DIR"
-fi
+[ ! -r "${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh" ] || . "${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh"
 
 if [[ -f "$ZDOTDIR/settings.zsh" ]]; then
   source $ZDOTDIR/settings.zsh

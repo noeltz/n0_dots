@@ -47,38 +47,6 @@ behavior_order = [ "lock", "screen-off", "suspend" ]
 [location]
 address = "Bühl, Germany"
 
-[lockscreen_widgets]
-enabled = true
-schema_version = 2
-widget_order = [ "lockscreen-login-box@Virtual-1", "lockscreen-widget-0000000000000001" ]
-
-    [lockscreen_widgets.grid]
-    cell_size = 16
-    major_interval = 4
-    visible = true
-
-    [lockscreen_widgets.widget."lockscreen-login-box@Virtual-1"]
-    box_height = 0.0
-    box_width = 0.0
-    cx = 960.0
-    cy = 957.0
-    output = "Virtual-1"
-    rotation = 0.0
-    type = "login_box"
-
-    [lockscreen_widgets.widget.lockscreen-widget-0000000000000001]
-    box_height = 272.0
-    box_width = 528.0
-    cx = 960.0
-    cy = 524.0
-    output = "Virtual-1"
-    rotation = 0.0
-    type = "clock"
-
-        [lockscreen_widgets.widget.lockscreen-widget-0000000000000001.settings]
-        background = false
-        color = "secondary"
-
 [notification]
 position = "top_left"
 
@@ -104,9 +72,6 @@ transition = [ "fade" ]
     path = "~/Pictures/Wallpaper/default-bg.jpg"
 
     [wallpaper.last]
-    path = "~/Pictures/Wallpaper/default-bg.jpg"
-
-    [wallpaper.monitors.Virtual-1]
     path = "~/Pictures/Wallpaper/default-bg.jpg"
 
 [weather]

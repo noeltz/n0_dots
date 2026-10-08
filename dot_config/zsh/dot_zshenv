@@ -1,10 +1,3 @@
 #!/usr/bin/env zsh
-
-# De-duplicate PATH array
-typeset -U path
-
-# Basic PATH prepending (user local bin)
-path=($HOME/.local/bin $path)
-
-# Ovveride HISTFILE from environment.d
+[ ! -r "${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh" ] || . "${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh"
 export HISTFILE="$ZDOTDIR/.zsh_history"

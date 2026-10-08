@@ -96,26 +96,13 @@ main() {
   local -a entries=()
 
 {{- if eq $distro "void" }}
+for old_config in /etc/profile.d/xdg-environment.sh /etc/profile.d/xdg-path.sh; do
+  [[ ! -e "$old_config" ]] || create_backup "$old_config" || die "Cannot back up $old_config"
+done
 sudo tee /etc/profile.d/xdg-environment.sh > /dev/null <<'EOF'
-# Source environment files from ~/.config/environment.d/
-if [ -d "$HOME/.config/environment.d/" ]; then
-    for file in "$HOME/.config/environment.d/"*.conf; do
-        [ -f "$file" ] && . "$file"
-    done
-fi
+[ ! -r "${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh" ] || . "${XDG_CONFIG_HOME:-$HOME/.config}/n0-dots/environment.sh"
 EOF
-sudo chmod +x /etc/profile.d/xdg-environment.sh
-
-sudo tee /etc/profile.d/xdg-path.sh > /dev/null <<'EOF'
-# Add XDG_BIN_HOME to PATH if it exists
-if [ -d "${XDG_BIN_HOME:=$HOME/.local/bin}" ]; then
-    case ":$PATH:" in
-        *:"$XDG_BIN_HOME":*) ;;
-        *) export PATH="$XDG_BIN_HOME:$PATH" ;;
-    esac
-fi
-EOF
-sudo chmod +x /etc/profile.d/xdg-path.sh
+sudo rm -f /etc/profile.d/xdg-path.sh
 {{- end }}
 
   {{ range .disable_autostart -}}
