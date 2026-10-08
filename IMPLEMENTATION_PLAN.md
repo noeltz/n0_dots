@@ -7,8 +7,9 @@ hardcoded Umbriel default and custom session wrapper are superseded. Tuigreet
 selects installed desktop entries and wraps them with `dbus-run-session --`;
 greetd's normal profile loading supplies the shared environment. Adding a
 compositor never requires adding a case to a shared script.
-External prerequisite: publish a signed `xdg-desktop-portal-umbriel` package with
-GTK4 share picker through `n0_void-repo`. Package creation is outside this work.
+The user has published `xdg-desktop-portal-umbriel` through `n0_void-repo`.
+It is now declared and required by bootstrap. Installation, share-picker validation
+and end-to-end portal acceptance remain pending until the next update/login.
 Snapshot/recovery automation and virtualization-host restructuring are excluded.
 
 ## Summary
@@ -58,8 +59,8 @@ Snapshot/recovery automation and virtualization-host restructuring are excluded.
 
 ## 3. Portals, displays, locking
 
-- [x] Prepare required XBPS portal installation when repository advertises signed package; no source fallback — bootstrap integration complete.
-- [ ] Install supplied Umbriel portal package — unavailable prerequisite remains external.
+- [x] Declare and require supplied XBPS portal package — packages_void.toml updated; availability gate removed; no source fallback.
+- [ ] Install supplied Umbriel portal package — user will update/install/reboot, then request a recheck.
 - [x] Umbriel default=umbriel;gtk, ScreenCast/Screenshot Umbriel, GTK dialogs, keyring secrets — config implemented.
 - [x] Retain Niri GNOME/GTK and correct ScreenCast case — config implemented.
 - [x] Preserve session-bus portal activation; no portal supervision/kill/restart — inspected scripts/dinit config.

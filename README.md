@@ -377,9 +377,8 @@ included TOML file. Noctalia uses default login-box placement on detected output
 
 Umbriel's portal override selects Umbriel for ScreenCast/Screenshot, GTK for
 file dialogs, and gnome-keyring for secrets; Niri retains GNOME/GTK selection.
-The signed `xdg-desktop-portal-umbriel` package with GTK4 share picker must be
-published through `n0_void-repo`. Bootstrap requires it when repository metadata
-advertises it; until then it reports the missing prerequisite. There is no
+The `xdg-desktop-portal-umbriel` package is supplied through `n0_void-repo` and
+declared in the package list. Bootstrap requires successful installation. There is no
 source-build fallback. Run `n0-portal-check` after installation to inspect backend
 interfaces, activation files and executable paths. Portals activate on the session
 bus; apply does not supervise or kill portal processes. Browser screen sharing

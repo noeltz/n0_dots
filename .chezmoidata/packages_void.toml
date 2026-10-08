@@ -148,6 +148,7 @@ packages = [
   "x265",
   "xdg-desktop-portal-gnome",
   "xdg-desktop-portal-gtk",
+  "xdg-desktop-portal-umbriel",
   "xdg-desktop-portal-wlr",
   "xdg-user-dirs",
   "xsettingsd",
